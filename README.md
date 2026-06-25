@@ -16,9 +16,8 @@
 | `report.py` | 从 qwen-hackathon 复制 | **未修改** — 报告生成器不变 |
 | `server.py` | **新增** | 适配 AWS：去嵌入式 UI、加 DynamoDB 持久化 |
 | `requirements.txt` | 从 qwen-hackathon 复制 | +boto3（DynamoDB SDK） |
-| `AWS_SETUP.md` | **新增** | AWS 注册 + DynamoDB + 信用额申请完整指南 |
-| `v0-frontend-guide.md` | **新增** | Vercel v0 前端生成 + 部署指南 |
-| `DEVPOST_SUBMISSION.md` | **新增** | 参赛提交清单 |
+| `frontend/` | **新增** | Next.js 16 前端（Vercel 部署） |
+| `video/` | **新增** | HyperFrames 演示视频 |
 
 ---
 
@@ -77,30 +76,34 @@ curl http://localhost:8080/health
 ## 架构
 
 ```
-┌─────────────────────────────────┐
-│  Vercel v0 前端                 │  ← v0.app 一键生成
-│  (Next.js / React)              │
-│  • 文件上传 (28+ FTIR 格式)     │
-│  • 分析结果展示 + 置信度追踪    │
-│  • 多轮对话聊天                 │
-│  • 报告下载                     │
-└──────────────┬──────────────────┘
-               │ HTTPS
-┌──────────────▼──────────────────┐
-│  FastAPI 后端 (server.py)       │  ← 本次新增
-│  • /api/analyze — 光谱分析     │
-│  • /api/followup — 多轮追问    │
-│  • /api/confirm — 确认+报告    │
-│  • /api/report/{id} — 报告下载 │
-│  • /api/history — 历史记录     │
-│  • /health — 健康检查          │
-└──────┬──────────────────┬───────┘
+┌─────────────────────────────────────────┐
+│  ▲ Vercel 前端                          │
+│  chemspectra-agent-h0.vercel.app       │
+│  (Next.js 16 / React / TypeScript)     │
+│  • 文件上传 (28+ FTIR 格式)            │
+│  • 分析结果展示 + 置信度追踪           │
+│  • 多轮对话聊天 + 追问                 │
+│  • 报告下载 + Agent 指标面板           │
+│  • 历史记录侧边栏                      │
+└──────────────┬──────────────────────────┘
+               │ HTTPS (ftir.fun/h0)
+┌──────────────▼──────────────────────────┐
+│  FastAPI 后端 (server.py)               │
+│  • /api/analyze — 光谱分析              │
+│  • /api/followup — 多轮追问             │
+│  • /api/confirm — 确认+报告             │
+│  • /api/report/{id} — 报告下载          │
+│  • /api/history — 历史记录              │
+│  • /health — 健康检查                   │
+└──────┬──────────────────┬───────────────┘
        │                  │
 ┌──────▼──────┐  ┌────────▼────────┐
-│  Qwen API   │  │  AWS DynamoDB   │  ← H0 要求
-│  (dashscope)│  │  Session 持久化 │
-│  agent.py   │  │  历史记录查询   │
-│  tools.py   │  │  30 天 TTL      │
+│  Qwen API   │  │  ☁ AWS DynamoDB │  ← H0 要求
+│  (dashscope)│  │  chemspectra-   │
+│  Qwen 3.7-  │  │  sessions 表    │
+│  Max        │  │  30 天 TTL      │
+│  agent.py   │  │  History API    │
+│  tools.py   │  │                 │
 └──────┬──────┘  └─────────────────┘
        │
 ┌──────▼──────────────────┐
@@ -112,17 +115,27 @@ curl http://localhost:8080/health
 
 ---
 
+## 🔗 在线地址
+
+| 环境 | URL |
+|------|-----|
+| **Vercel 前端** | `https://chemspectra-agent-h0.vercel.app` |
+| **后端 API** | `https://ftir.fun/h0` |
+| **GitHub** | `https://github.com/jxbaoxiaodong/chemspectra-agent-h0` |
+
+---
+
 ## H0 提交要求对照
 
-| # | 要求 | 实现 |
-|---|------|------|
+| # | 要求 | 状态 |
+|---|------|:--:|
 | 1 | 使用 AWS 数据库（Aurora/DynamoDB） | ✅ DynamoDB — `chemspectra-sessions` 表 |
-| 2 | 前端部署到 Vercel/v0.app | ✅ v0 生成 + Vercel 部署 |
-| 3 | 全栈应用（前后端联通） | ✅ FastAPI 后端 + Next.js 前端 |
-| 4 | 演示视频 ≤3 分钟 | 见 DEVPOST_SUBMISSION.md |
-| 5 | 架构图 | 见 ARCHITECTURE.md |
+| 2 | 前端部署到 Vercel/v0.app | ✅ `chemspectra-agent-h0.vercel.app` |
+| 3 | 全栈应用（前后端联通） | ✅ FastAPI + Next.js，公网全链路通 |
+| 4 | 演示视频 ≤3 分钟 | ✅ HTML 完成，待渲染上传 |
+| 5 | 架构图 | ✅ `ARCHITECTURE.md` |
 | 6 | 公开仓库 + 开源许可证 | ✅ MIT |
-| 7 | AWS 数据库使用截图 | DynamoDB Console 截图 |
+| 7 | AWS 数据库使用截图 | ⬜ 待截取 |
 
 ---
 

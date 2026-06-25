@@ -12,13 +12,13 @@
 
 | # | 要求 | 落实文件 | 状态 |
 |---|------|----------|:--:|
-| 1 | **公开 GitHub 仓库 + 开源许可证** | 本仓库，含 `LICENSE` (MIT) | ✅ |
-| 2 | **文字描述** — 解释项目功能 | 见下方「文字描述模板」 | ⬜ |
-| 3 | **演示视频 ≤3 分钟** — YouTube/Vimeo/Youku 公开 | 见「录屏指南」 | ⬜ |
+| 1 | **公开 GitHub 仓库 + 开源许可证** | `github.com/jxbaoxiaodong/chemspectra-agent-h0`，含 `LICENSE` (MIT) | ✅ |
+| 2 | **文字描述** — 解释项目功能 | 见下方「文字描述模板」 | ✅ |
+| 3 | **演示视频 ≤3 分钟** — YouTube/Vimeo/Youku 公开 | `video/index.html`（HyperFrames，待渲染上传） | ⬜ |
 | 4 | **架构图** — 系统组件连接关系 | `ARCHITECTURE.md` | ✅ |
-| 5 | **Vercel 项目链接 + Vercel Team ID** | v0 部署后获取 | ⬜ |
-| 6 | **AWS 数据库使用截图** | DynamoDB Console 截图 | ⬜ |
-| 7 | **注明使用了哪个 AWS 数据库** | DynamoDB | ✅ |
+| 5 | **Vercel 项目链接 + Vercel Team ID** | `chemspectra-agent-h0.vercel.app`，Team ID 待获取 | ⬜ |
+| 6 | **AWS 数据库使用截图** | DynamoDB Console 截图待截 | ⬜ |
+| 7 | **注明使用了哪个 AWS 数据库** | Amazon DynamoDB（chemspectra-sessions 表） | ✅ |
 
 ## 二、加分项（可选）
 
@@ -98,45 +98,46 @@ BUSINESS VALUE:
 
 ### GitHub 仓库
 
-- [ ] LICENSE (MIT) 文件存在
-- [ ] README.md 解释项目功能 + 技术栈
-- [ ] ARCHITECTURE.md 包含完整系统架构图
-- [ ] 代码仓库设为 Public
-- [ ] 包含设置说明（如何运行）
+- [x] LICENSE (MIT) 文件存在
+- [x] README.md 解释项目功能 + 技术栈
+- [x] ARCHITECTURE.md 包含完整系统架构图
+- [x] 代码仓库设为 Public
+- [x] 包含设置说明（如何运行）
+- [x] 前端 Next.js 代码已推送
 
 ### AWS 数据库
 
-- [ ] DynamoDB 表 `chemspectra-sessions` 已创建并 Active
-- [ ] IAM 用户 `chemspectra-agent` 有 DynamoDBFullAccess 权限
+- [x] DynamoDB 表 `chemspectra-sessions` 已创建并 Active
+- [x] IAM 用户 `chemspectra-agent` 有 DynamoDBFullAccess 权限
+- [x] 表中有真实分析数据（已验证 `/api/history` 返回记录）
 - [ ] 截图：打开 AWS Console → DynamoDB → chemspectra-sessions → 显示表详情
 - [ ] 截图文件名: `aws-dynamodb-proof.png`
 
 ### Vercel 部署
 
-- [ ] v0 生成的前端已部署到 Vercel
-- [ ] 前端可以成功调用后端 API（CORS 已配置）
-- [ ] 获取 Vercel Project URL（如 `https://chemspectra.vercel.app`）
+- [x] Next.js 前端已部署到 Vercel（`chemspectra-agent-h0.vercel.app`）
+- [x] 前端调用后端 API 使用公网 URL（`https://ftir.fun/h0`）
+- [x] 获取 Vercel Project URL
 - [ ] 获取 Vercel Team ID
+- [ ] 截图：Vercel Dashboard 项目列表
 
 ### 视频
 
-- [ ] 3 分钟以内
-- [ ] 展示 AWS 数据库使用
-- [ ] 展示 Vercel 前端
-- [ ] 展示完整工作流程
-- [ ] 上传到 YouTube/Vimeo/Youku 并设为公开
+- [x] HyperFrames HTML 视频 7 场景已完成（`video/index.html`）
+- [x] 中/英文旁白脚本已完成（`video/SCRIPT.md`）
+- [ ] 渲染视频 → 上传到 YouTube 并设为公开
 
 ### 文字材料
 
-- [ ] 项目描述（英文，用上方模板）
-- [ ] 解释使用了哪个 AWS 数据库 + 如何集成
-- [ ] README 包含设置说明
+- [x] 项目描述（英文，用上方模板）已就绪
+- [x] 解释了使用 AWS DynamoDB + 集成方式
+- [x] README 包含完整设置说明
+- [x] 架构图在 ARCHITECTURE.md 中
 
 ### 加分项（可选）
 
 - [ ] 在 dev.to / Medium / LinkedIn 发布构建过程文章
 - [ ] 文章包含 #H0Hackathon 标签
-- [ ] 文章提到使用了 AWS 数据库和 Vercel
 
 ---
 
@@ -148,12 +149,12 @@ BUSINESS VALUE:
 | **Track** | Track 2: Monetizable B2B App |
 | **Short Description** | AI autopilot for FTIR spectral analysis. Upload a spectrum → get material ID, functional groups, and a structured report in <2 min. |
 | **Which AWS Database?** | Amazon DynamoDB |
-| **Video Link** | [YouTube/Youku URL] |
-| **Vercel Project Link** | [vercel.app URL] |
-| **Vercel Team ID** | [从 Vercel Dashboard 获取] |
-| **GitHub Repository** | https://github.com/jxbaoxiaodong/chemspectra-agent-h0 |
-| **AWS Database Screenshot** | 上传 `aws-dynamodb-proof.png` |
-| **Architecture Diagram** | 上传 ARCHITECTURE.md 中的图片，或附链接 |
+| **Video Link** | [YouTube 上传后获取] |
+| **Vercel Project Link** | `https://chemspectra-agent-h0.vercel.app` |
+| **Vercel Team ID** | [从 Vercel Dashboard → Settings → General 获取] |
+| **GitHub Repository** | `https://github.com/jxbaoxiaodong/chemspectra-agent-h0` |
+| **AWS Database Screenshot** | 待截取：AWS Console → DynamoDB → chemspectra-sessions |
+| **Architecture Diagram** | `ARCHITECTURE.md`（含 Mermaid 图） |
 
 ---
 
