@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>ChemSpectra Agent — H0 AWS+Vercel Hackathon</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --bg: #060E18;
+        --primary: #0FA5B3;
+        --secondary: #FF9900;
+        --tertiary: #22D3EE;
+        --text: #E2E8F0;
+        --muted: #94A3B8;
+        --surface: #0F1A2A;
+        --border: #1E3A4F;
+        --success: #22C55E;
+        --vercel: #FFFFFF;
+        --dim: #475569;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+      body { font-family: "Inter", sans-serif; color: var(--text); }
+      .mono { font-family: "JetBrains Mono", monospace; }
+      .headline { font-weight: 700; }
+
+      .scene { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; overflow: hidden; }
+      .scene-pad {
+        display: flex; flex-direction: column; justify-content: center;
+        width: 100%; height: 100%; padding: 80px 130px; gap: 32px;
+      }
+      .section-label {
+        font-size: 20px; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 3px; color: var(--primary); opacity: 0.85;
+      }
+      .pill {
+        display: inline-block; background: rgba(15,165,179,0.12);
+        border: 1px solid rgba(15,165,179,0.3); border-radius: 100px;
+        padding: 10px 28px; font-size: 20px; color: var(--primary); font-weight: 500;
+      }
+      .divider { width: 100%; height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); }
+      .aws-badge {
+        background: rgba(255,153,0,0.12); border: 1px solid rgba(255,153,0,0.3);
+        color: var(--secondary);
+      }
+      .vercel-badge {
+        background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+        color: var(--vercel);
+      }
+
+      /* SCENE 1: TITLE */
+      #scene1 { z-index: 1; }
+      #scene1 .scene-pad { align-items: center; text-align: center; gap: 24px; }
+      #s1-spectrum {
+        position: absolute; bottom: 0; left: 0; width: 100%;
+        height: 280px; opacity: 0.04;
+        background: linear-gradient(to top, var(--primary) 2px, transparent 2px),
+                    radial-gradient(ellipse at 60% 70%, rgba(15,165,179,0.3) 0%, transparent 50%),
+                    radial-gradient(ellipse at 30% 80%, rgba(255,153,0,0.15) 0%, transparent 40%);
+        background-size: 100% 8px, 100% 100%, 100% 100%;
+      }
+      #s1-title { font-size: 96px; font-weight: 800; color: var(--primary); letter-spacing: -2px; }
+      #s1-subtitle { font-size: 38px; color: var(--text); }
+      #s1-track { font-size: 26px; color: var(--secondary); font-weight: 600; }
+      #s1-badges { display: flex; gap: 16px; justify-content: center; margin-top: 8px; }
+      #s1-powered { position: absolute; bottom: 55px; font-size: 20px; color: var(--muted); }
+
+      /* SCENE 2: PROBLEM & B2B PAIN */
+      #scene2 { z-index: 2; }
+      #scene2 .scene-pad { gap: 36px; }
+      #s2-line1 { font-size: 60px; color: var(--muted); font-weight: 600; }
+      #s2-line2 { font-size: 60px; color: var(--primary); font-weight: 700; }
+      .pain-row { display: flex; align-items: center; gap: 40px; }
+      .pain-stat { font-size: 56px; font-weight: 800; color: var(--secondary); white-space: nowrap; }
+      .pain-desc { font-size: 26px; color: var(--muted); line-height: 1.5; max-width: 800px; }
+      .b2b-row { display: flex; gap: 20px; flex-wrap: wrap; }
+      .b2b-chip {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 10px; padding: 12px 24px; font-size: 18px; color: var(--text);
+        display: flex; align-items: center; gap: 10px;
+      }
+      .b2b-chip .ico { font-size: 22px; }
+
+      /* SCENE 3: ARCHITECTURE */
+      #scene3 { z-index: 3; }
+      #scene3 .scene-pad { gap: 24px; }
+      .arch-header { font-size: 44px; font-weight: 700; }
+      .arch-flow { display: flex; align-items: center; gap: 16px; justify-content: center; flex: 1; max-height: 360px; }
+      .arch-node {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 16px; padding: 24px 28px; text-align: center; min-width: 170px;
+      }
+      .arch-node-name { font-size: 22px; font-weight: 700; }
+      .arch-node-sub { font-size: 14px; color: var(--muted); margin-top: 4px; }
+      .arch-arrow { font-size: 28px; color: var(--dim); }
+      .arch-node.hl { border-color: var(--primary); background: rgba(15,165,179,0.08); }
+      .arch-node.aws { border-color: var(--secondary); background: rgba(255,153,0,0.06); }
+      .arch-node.vercel { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.04); }
+      .arch-db-line {
+        display: flex; align-items: center; gap: 12px; justify-content: center;
+        margin-top: 8px;
+      }
+
+      /* SCENE 4: VERCE FRONTEND DEMO */
+      #scene4 { z-index: 4; }
+      #scene4 .scene-pad { padding: 44px 90px; gap: 0; }
+      .vercel-bar {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 12px 12px 0 0; padding: 10px 16px;
+        display: flex; align-items: center; gap: 10px;
+        font-size: 15px; color: var(--muted);
+      }
+      .vercel-url {
+        background: rgba(0,0,0,0.3); border-radius: 8px;
+        padding: 6px 14px; color: var(--tertiary); font-size: 14px;
+      }
+      .demo-ui {
+        background: var(--surface); border: 1px solid var(--border); border-top: none;
+        border-radius: 0 0 12px 12px; padding: 28px; display: grid;
+        grid-template-columns: 1fr 1fr; gap: 24px;
+      }
+      .demo-card {
+        background: rgba(0,0,0,0.25); border: 1px solid var(--border);
+        border-radius: 12px; padding: 22px; display: flex; flex-direction: column; gap: 14px;
+      }
+      .demo-card-title { font-size: 15px; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+      .demo-field {
+        background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+        border-radius: 8px; padding: 12px 16px; font-size: 16px; color: var(--muted);
+      }
+      .demo-btn {
+        background: linear-gradient(135deg, var(--primary), #0891B2);
+        border-radius: 10px; padding: 14px 0; text-align: center;
+        font-size: 19px; font-weight: 700; color: #fff;
+      }
+      .result-row { display: flex; align-items: center; gap: 12px; }
+      .result-name { font-size: 24px; font-weight: 700; color: var(--text); flex: 1; }
+      .result-score { font-size: 38px; font-weight: 800; color: var(--primary); }
+      .tool-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+      .tool-b {
+        font-size: 13px; padding: 6px 14px; border-radius: 100px;
+        background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3);
+        color: var(--success); font-weight: 600;
+      }
+      .conf-bar {
+        display: flex; align-items: center; gap: 10px; font-size: 15px;
+      }
+      .conf-label { color: var(--muted); }
+      .conf-val { font-weight: 700; }
+
+      /* SCENE 5: AWS DYNAMODB */
+      #scene5 { z-index: 5; }
+      #scene5 .scene-pad { gap: 24px; }
+      .aws-console {
+        background: #0D1117; border: 1px solid var(--border);
+        border-radius: 12px; overflow: hidden;
+      }
+      .aws-bar {
+        padding: 12px 20px; background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; gap: 12px;
+        font-size: 14px; color: var(--muted);
+      }
+      .aws-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+      .aws-tbl-hdr {
+        display: grid; grid-template-columns: 1fr 1.5fr 0.6fr 0.6fr 1fr;
+        padding: 12px 20px; font-size: 13px; color: var(--secondary);
+        font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+      }
+      .aws-tbl-row {
+        display: grid; grid-template-columns: 1fr 1.5fr 0.6fr 0.6fr 1fr;
+        padding: 12px 20px; font-size: 15px;
+        border-bottom: 1px solid rgba(30,58,79,0.4);
+      }
+      .aws-footer {
+        padding: 14px 20px; display: flex; gap: 24px;
+        font-size: 14px; color: var(--muted);
+      }
+
+      /* SCENE 6: INNOVATION + B2B VALUE */
+      #scene6 { z-index: 6; }
+      #scene6 .scene-pad { gap: 24px; }
+      .val-grid {
+        display: grid; grid-template-columns: repeat(3, 1fr);
+        gap: 18px; flex: 1; max-height: 420px;
+      }
+      .val-card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 14px; padding: 28px; display: flex; flex-direction: column; gap: 10px;
+      }
+      .val-num { font-size: 48px; font-weight: 800; color: var(--secondary); }
+      .val-title { font-size: 20px; font-weight: 700; color: var(--primary); }
+      .val-desc { font-size: 16px; color: var(--muted); line-height: 1.5; }
+      .val-big-stat { display: flex; align-items: baseline; gap: 12px; margin-top: auto; }
+      .val-big-num { font-size: 56px; font-weight: 800; color: var(--primary); }
+
+      /* SCENE 7: CLOSING */
+      #scene7 { z-index: 7; }
+      #scene7 .scene-pad { align-items: center; text-align: center; gap: 24px; }
+      #s7-title { font-size: 72px; font-weight: 800; color: var(--primary); }
+      #s7-stack {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 14px; padding: 32px 52px;
+        display: flex; flex-direction: column; gap: 14px; font-size: 20px;
+      }
+      #s7-stack span { color: var(--muted); }
+      #s7-stack strong { color: var(--primary); font-weight: 600; }
+      #s7-gh { font-size: 22px; color: var(--tertiary); margin-top: 8px; }
+      #s7-thanks { font-size: 44px; font-weight: 800; color: var(--secondary); margin-top: 12px; }
+
+      .bg-glow {
+        position: absolute; border-radius: 50%; filter: blur(140px);
+        opacity: 0.05; pointer-events: none;
+      }
+      #blackout {
+        position: absolute; top: 0; left: 0; width: 1920px; height: 1080px;
+        background: var(--bg); z-index: 100; opacity: 0; pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-width="1920" data-height="1080">
+
+      <!-- ====== SCENE 1: TITLE (0-8s) ====== -->
+      <div id="scene1" class="scene">
+        <div id="s1-spectrum"></div>
+        <div class="scene-pad">
+          <div class="section-label">H0: Hack the Zero Stack</div>
+          <div id="s1-title" class="headline">CHEMSPECTRA AGENT</div>
+          <div id="s1-subtitle">AI Autopilot for FTIR Spectral Analysis</div>
+          <div id="s1-track">Track 2: Monetizable B2B App</div>
+          <div id="s1-badges">
+            <span class="pill aws-badge">☁ AWS DynamoDB</span>
+            <span class="pill vercel-badge">▲ Vercel</span>
+          </div>
+        </div>
+        <div id="s1-powered" class="mono">Qwen 3.7-Max · FTIR.fun 130K Spectra · MIT Open Source</div>
+      </div>
+
+      <!-- ====== SCENE 2: PROBLEM + B2B PAIN (8-28s) ====== -->
+      <div id="scene2" class="scene" style="opacity:0">
+        <div class="scene-pad">
+          <div class="section-label">The B2B Problem</div>
+          <div id="s2-line1" class="headline">QC labs spend 30–60 minutes</div>
+          <div id="s2-line2" class="headline">on every single FTIR sample</div>
+          <div class="pain-row">
+            <div class="pain-stat headline">2 min</div>
+            <div class="pain-desc">That's what ChemSpectra Agent delivers — <strong style="color:var(--primary);">30x faster</strong> spectral analysis with AI</div>
+          </div>
+          <div class="divider"></div>
+          <div class="b2b-row">
+            <div class="b2b-chip"><span class="ico">🏭</span> Polymer Manufacturers</div>
+            <div class="b2b-chip"><span class="ico">💊</span> Pharma QC Labs</div>
+            <div class="b2b-chip"><span class="ico">🔬</span> Forensics Agencies</div>
+            <div class="b2b-chip"><span class="ico">🌍</span> 52 Countries · Paying Users</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== SCENE 3: ARCHITECTURE (28-53s) ====== -->
+      <div id="scene3" class="scene" style="opacity:0">
+        <div class="scene-pad" style="gap:20px;">
+          <div>
+            <div class="section-label">Full-Stack Architecture</div>
+            <div class="arch-header headline">Vercel → FastAPI → Qwen → FTIR.fun → DynamoDB</div>
+          </div>
+          <div class="arch-flow">
+            <div class="arch-node vercel">
+              <div class="arch-node-name" style="color:#fff;">▲ Vercel</div>
+              <div class="arch-node-sub">Next.js Frontend<br/>Public URL</div>
+            </div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-node hl">
+              <div class="arch-node-name">⚡ FastAPI</div>
+              <div class="arch-node-sub">REST Backend<br/>CORS Ready</div>
+            </div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-node hl">
+              <div class="arch-node-name" style="color:var(--primary);">🧠 Qwen 3.7-Max</div>
+              <div class="arch-node-sub">ReAct Agent<br/>5 Tools · Self-Verify</div>
+            </div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-node">
+              <div class="arch-node-name">🔬 FTIR.fun API</div>
+              <div class="arch-node-sub">130K Spectra<br/>28 Formats</div>
+            </div>
+          </div>
+          <div class="arch-db-line">
+            <div class="arch-node aws" style="min-width:240px;">
+              <div class="arch-node-name" style="color:var(--secondary);">☁ AWS DynamoDB</div>
+              <div class="arch-node-sub">Session Persistence · History API · 30-Day TTL</div>
+            </div>
+            <div style="font-size:18px;color:var(--muted);">↕ All analysis sessions stored with full audit trail</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== SCENE 4: VERCE FRONTEND DEMO (53-108s) ====== -->
+      <div id="scene4" class="scene" style="opacity:0">
+        <div class="scene-pad">
+          <div class="section-label" style="margin-bottom:10px;">Live Demo — Vercel Frontend</div>
+          <div class="vercel-bar">
+            <span>🔒</span>
+            <span class="vercel-url mono">chemspectra-agent-h0.vercel.app</span>
+            <span style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:var(--success);"></span> Deployed · Production
+            </span>
+          </div>
+          <div class="demo-ui">
+            <div class="demo-card">
+              <div class="demo-card-title">📤 Input</div>
+              <div class="demo-field mono">Peaks: 2920, 1720, 1230 cm⁻¹</div>
+              <div class="demo-field">Sample: Unknown white powder — identify material</div>
+              <div class="tool-badges">
+                <span class="pill" style="font-size:14px;padding:6px 16px;">🔬 Identify Material</span>
+                <span class="pill aws-badge" style="font-size:12px;padding:4px 12px;">28+ Formats</span>
+              </div>
+              <div class="demo-btn">▶ Analyze Spectrum</div>
+            </div>
+            <div class="demo-card">
+              <div class="demo-card-title">📊 Results — Agent Selected 3 Tools</div>
+              <div class="tool-badges">
+                <span class="tool-b">🧪 Material ID</span>
+                <span class="tool-b">📊 Peak Explain</span>
+                <span class="tool-b" style="background:rgba(255,153,0,0.12);border-color:rgba(255,153,0,0.3);color:var(--secondary);">⚡ Func Groups</span>
+              </div>
+              <div class="result-row">
+                <div>
+                  <div class="result-name">Polyethylene Terephthalate</div>
+                  <div style="font-size:14px;color:var(--muted);">CAS: 25038-59-9</div>
+                </div>
+                <div class="result-score mono">0.94</div>
+              </div>
+              <div class="conf-bar">
+                <span class="pill" style="font-size:13px;padding:5px 14px;background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.3);color:var(--success);">High Confidence</span>
+                <span class="conf-label">Auto-verification:</span>
+                <span class="conf-val" style="color:var(--secondary);">0.72</span>
+                <span class="conf-label">→</span>
+                <span class="conf-val" style="color:var(--success);">0.94</span>
+                <span class="conf-label">(+30%)</span>
+              </div>
+              <div style="display:flex;gap:12px;margin-top:8px;">
+                <button style="background:var(--secondary);border:none;border-radius:8px;padding:10px 20px;font-size:14px;font-weight:700;color:#000;">✓ Confirm Analysis</button>
+                <button style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 20px;font-size:14px;color:var(--muted);">💬 Ask Follow-up</button>
+                <button style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 20px;font-size:14px;color:var(--muted);">📥 Report</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== SCENE 5: AWS DYNAMODB EVIDENCE (108-128s) ====== -->
+      <div id="scene5" class="scene" style="opacity:0">
+        <div class="scene-pad">
+          <div class="section-label">☁ AWS Database Evidence · H0 Requirement</div>
+          <div class="arch-header headline" style="font-size:40px;">Amazon DynamoDB · chemspectra-sessions</div>
+          <div class="aws-console">
+            <div class="aws-bar">
+              <span class="dot" style="background:var(--success);"></span>
+              <span>AWS Console · DynamoDB · Tables · chemspectra-sessions</span>
+              <span style="margin-left:auto;">Region: us-east-2 · Status: <span style="color:var(--success);">ACTIVE</span></span>
+            </div>
+            <div class="aws-tbl-hdr">
+              <span>session_id</span><span>top_match</span><span>score</span><span>matches</span><span>created_at</span>
+            </div>
+            <div class="aws-tbl-row" style="color:var(--text);">
+              <span style="color:var(--tertiary);">dc179a5a9252</span>
+              <span>Poly(ethylene),high density</span>
+              <span style="color:var(--secondary);">0.94</span>
+              <span>10</span>
+              <span class="mono">2026-06-25T10:22Z</span>
+            </div>
+            <div class="aws-tbl-row" style="color:var(--text);">
+              <span style="color:var(--tertiary);">f3a82b1c7741</span>
+              <span>PET (polyester fiber grade)</span>
+              <span style="color:var(--secondary);">0.91</span>
+              <span>8</span>
+              <span class="mono">2026-06-25T10:25Z</span>
+            </div>
+            <div class="aws-tbl-row" style="color:var(--text);">
+              <span style="color:var(--tertiary);">7e1d9a4b2283</span>
+              <span>Polystyrene</span>
+              <span style="color:var(--secondary);">0.88</span>
+              <span>12</span>
+              <span class="mono">2026-06-25T10:28Z</span>
+            </div>
+            <div class="aws-footer">
+              <span>🔐 IAM: chemspectra-agent · DynamoDBFullAccess</span>
+              <span>⏳ TTL: 30 days auto-expire</span>
+              <span>💲 $100 AWS Credits · 184 days remaining</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== SCENE 6: INNOVATION + B2B VALUE (128-158s) ====== -->
+      <div id="scene6" class="scene" style="opacity:0">
+        <div class="scene-pad">
+          <div class="section-label">Innovation &amp; Monetizable B2B Value</div>
+          <div class="arch-header headline">Why Labs Pay for This</div>
+          <div class="val-grid">
+            <div class="val-card">
+              <div class="val-title">🤖 Autonomous Tool Selection</div>
+              <div class="val-desc">Agent REASONS about intent. Different questions → different tool combinations. Not a fixed pipeline.</div>
+            </div>
+            <div class="val-card">
+              <div class="val-title">🔄 Self-Verification</div>
+              <div class="val-desc">Auto-detects conflicts. Launches verification round. Confidence 0.72 → 0.94 autonomously.</div>
+            </div>
+            <div class="val-card">
+              <div class="val-title">👤 Human-in-the-Loop</div>
+              <div class="val-desc">Mandatory confirmation gate. Meets regulated industry compliance: pharma, forensics, materials.</div>
+            </div>
+            <div class="val-card">
+              <div class="val-title">☁ Full-Stack SaaS</div>
+              <div class="val-desc">Vercel frontend + FastAPI + AWS DynamoDB. Serverless session persistence with history API.</div>
+            </div>
+            <div class="val-card">
+              <div class="val-num headline mono">30×</div>
+              <div class="val-title">Faster Analysis</div>
+              <div class="val-desc">From 30-60 min manual → under 2 min automated. Direct ROI for QC labs.</div>
+            </div>
+            <div class="val-card">
+              <div class="val-big-stat">
+                <span class="val-big-num mono">52</span>
+                <span style="color:var(--muted);font-size:18px;">countries<br/>paying users</span>
+              </div>
+              <div class="val-desc">SaaS subscription + per-sample pricing. Already revenue-generating.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== SCENE 7: CLOSING (158-180s) ====== -->
+      <div id="scene7" class="scene" style="opacity:0">
+        <div class="scene-pad">
+          <div id="s7-title" class="headline">ChemSpectra Agent</div>
+          <div id="s7-stack">
+            <div><strong>▲ Vercel</strong> <span>Frontend · Next.js · chemspectra-agent-h0.vercel.app</span></div>
+            <div><strong>☁ AWS DynamoDB</strong> <span>Session Storage · chemspectra-sessions · 30-Day TTL</span></div>
+            <div><strong>🧠 Qwen 3.7-Max</strong> <span>ReAct Agent · 5 Tools · Self-Verification · Self-Repair</span></div>
+            <div><strong>🔬 FTIR.fun</strong> <span>130,000 Spectra · 28 File Formats · Production API</span></div>
+          </div>
+          <div id="s7-gh" class="mono">github.com/jxbaoxiaodong/chemspectra-agent-h0</div>
+          <div class="headline" style="font-size:36px;color:var(--text);">Built by a domain expert. Powered by <span style="color:var(--primary);">AWS + AI</span>.</div>
+          <div id="s7-thanks" class="headline">Thank you.</div>
+        </div>
+      </div>
+
+      <div id="blackout"></div>
+    </div>
+
+    <div class="bg-glow" style="width:500px;height:500px;top:-150px;right:-100px;background:var(--primary);"></div>
+    <div class="bg-glow" style="width:350px;height:350px;bottom:-80px;left:15%;background:var(--secondary);opacity:0.04;"></div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      // Scene start times (seconds)
+      var T1=0.2, T2=8, T3=28, T4=53, T5=108, T6=128, T7=158;
+
+      // === SCENE 1: TITLE ===
+      tl.from("#s1-spectrum", { opacity: 0, duration: 2.5, ease: "power1.in" }, T1);
+      tl.from("#scene1 .section-label", { y: -30, opacity: 0, duration: 0.5, ease: "power3.out" }, T1+0.3);
+      tl.from("#s1-title", { y: 60, opacity: 0, duration: 0.9, ease: "power3.out" }, T1+0.6);
+      tl.from("#s1-subtitle", { y: 40, opacity: 0, duration: 0.6, ease: "power3.out" }, T1+1.3);
+      tl.from("#s1-track", { y: 30, opacity: 0, duration: 0.5, ease: "power2.out" }, T1+1.8);
+      tl.from("#s1-badges .pill", { scale: 0, opacity: 0, duration: 0.4, stagger: 0.15, ease: "back.out(1.3)" }, T1+2.2);
+      tl.from("#s1-powered", { opacity: 0, duration: 0.6, ease: "power2.out" }, T1+2.5);
+
+      // Transition S1→S2
+      tl.to("#scene1", { filter: "blur(12px)", scale: 1.04, opacity: 0, duration: 0.5, ease: "power2.inOut" }, T2-0.8);
+      tl.fromTo("#scene2", { filter: "blur(12px)", scale: 0.96, opacity: 0 }, { filter: "blur(0px)", scale: 1, opacity: 1, duration: 0.5, ease: "power2.inOut" }, T2-0.4);
+
+      // === SCENE 2: PROBLEM ===
+      tl.from("#s2-line1", { x: -50, opacity: 0, duration: 0.6, ease: "expo.out" }, T2+0.3);
+      tl.from("#s2-line2", { x: -40, opacity: 0, duration: 0.7, ease: "expo.out" }, T2+0.8);
+      tl.from(".pain-stat", { scale: 0.4, opacity: 0, duration: 0.5, ease: "back.out(1.4)" }, T2+1.5);
+      tl.from(".pain-desc", { y: 30, opacity: 0, duration: 0.5, ease: "power2.out" }, T2+2);
+      tl.from(".b2b-chip", { y: 20, opacity: 0, duration: 0.4, stagger: 0.12, ease: "power2.out" }, T2+3.5);
+
+      // Transition S2→S3
+      tl.to("#scene2", { filter: "blur(12px)", scale: 1.04, opacity: 0, duration: 0.5, ease: "power2.inOut" }, T3-0.8);
+      tl.fromTo("#scene3", { filter: "blur(12px)", scale: 0.96, opacity: 0 }, { filter: "blur(0px)", scale: 1, opacity: 1, duration: 0.5, ease: "power2.inOut" }, T3-0.4);
+
+      // === SCENE 3: ARCHITECTURE ===
+      tl.from("#scene3 .section-label", { y: 20, opacity: 0, duration: 0.4, ease: "power3.out" }, T3+0.3);
+      tl.from("#scene3 .arch-header", { y: 30, opacity: 0, duration: 0.6, ease: "power3.out" }, T3+0.6);
+      tl.from("#scene3 .arch-node", { scale: 0.85, opacity: 0, duration: 0.5, stagger: 0.15, ease: "back.out(1.2)" }, T3+1.5);
+      tl.from("#scene3 .arch-arrow", { scale: 0, opacity: 0, duration: 0.3, stagger: 0.1, ease: "power2.out" }, T3+1.8);
+      tl.from("#scene3 .arch-db-line .arch-node", { y: 30, opacity: 0, duration: 0.5, ease: "power2.out" }, T3+3.5);
+      tl.from("#scene3 .arch-db-line div:last-child", { x: 20, opacity: 0, duration: 0.4, ease: "power2.out" }, T3+4);
+
+      // Transition S3→S4
+      tl.to("#scene3", { filter: "blur(12px)", scale: 1.04, opacity: 0, duration: 0.5, ease: "power2.inOut" }, T4-0.8);
+      tl.fromTo("#scene4", { filter: "blur(12px)", scale: 0.96, opacity: 0 }, { filter: "blur(0px)", scale: 1, opacity: 1, duration: 0.5, ease: "power2.inOut" }, T4-0.4);
+
+      // === SCENE 4: VERCE DEMO ===
+      tl.from("#scene4 .section-label", { y: 20, opacity: 0, duration: 0.3, ease: "power3.out" }, T4+0.3);
+      tl.from("#scene4 .vercel-bar", { y: 20, opacity: 0, duration: 0.5, ease: "power3.out" }, T4+0.6);
+      tl.from("#scene4 .demo-card:first-child", { x: -50, opacity: 0, duration: 0.7, ease: "expo.out" }, T4+1.5);
+      tl.from("#scene4 .demo-card:last-child", { x: 50, opacity: 0, duration: 0.7, ease: "expo.out" }, T4+1.8);
+      tl.from("#scene4 .tool-b", { scale: 0, opacity: 0, duration: 0.4, stagger: 0.12, ease: "back.out(1.3)" }, T4+2.5);
+      tl.from("#scene4 .result-row", { y: 20, opacity: 0, duration: 0.5, ease: "power2.out" }, T4+3);
+      tl.from("#scene4 .conf-bar", { y: 15, opacity: 0, duration: 0.4, ease: "power2.out" }, T4+3.5);
+      tl.from("#scene4 .demo-card:last-child > div:last-child", { y: 15, opacity: 0, duration: 0.4, ease: "power2.out" }, T4+4);
+
+      // Transition S4→S5
+      tl.to("#scene4", { filter: "blur(12px)", scale: 1.04, opacity: 0, duration: 0.5, ease: "power2.inOut" }, T5-0.8);
+      tl.fromTo("#scene5", { filter: "blur(12px)", scale: 0.96, opacity: 0 }, { filter: "blur(0px)", scale: 1, opacity: 1, duration: 0.5, ease: "power2.inOut" }, T5-0.4);
+
+      // === SCENE 5: AWS DYNAMODB ===
+      tl.from("#scene5 .section-label", { y: 20, opacity: 0, duration: 0.4, ease: "power3.out" }, T5+0.3);
+      tl.from("#scene5 .arch-header", { y: 30, opacity: 0, duration: 0.6, ease: "power3.out" }, T5+0.6);
+      tl.from("#scene5 .aws-console", { y: 40, opacity: 0, duration: 0.7, ease: "expo.out" }, T5+1.2);
+      tl.from("#scene5 .aws-tbl-row", { x: -20, opacity: 0, duration: 0.4, stagger: 0.15, ease: "power2.out" }, T5+2);
+      tl.from("#scene5 .aws-footer", { y: 15, opacity: 0, duration: 0.4, ease: "power2.out" }, T5+3);
+
+      // Transition S5→S6
+      tl.to("#scene5", { filter: "blur(12px)", scale: 1.04, opacity: 0, duration: 0.5, ease: "power2.inOut" }, T6-0.8);
+      tl.fromTo("#scene6", { filter: "blur(12px)", scale: 0.96, opacity: 0 }, { filter: "blur(0px)", scale: 1, opacity: 1, duration: 0.5, ease: "power2.inOut" }, T6-0.4);
+
+      // === SCENE 6: INNOVATION + B2B ===
+      tl.from("#scene6 .section-label", { y: 20, opacity: 0, duration: 0.4, ease: "power3.out" }, T6+0.3);
+      tl.from("#scene6 .arch-header", { y: 30, opacity: 0, duration: 0.6, ease: "power3.out" }, T6+0.6);
+      tl.from("#scene6 .val-card", { y: 40, opacity: 0, duration: 0.6, stagger: 0.08, ease: "expo.out" }, T6+1.2);
+
+      // Transition S6→S7
+      tl.to("#scene6", { filter: "blur(12px)", scale: 1.04, opacity: 0, duration: 0.5, ease: "power2.inOut" }, T7-0.8);
+      tl.fromTo("#scene7", { filter: "blur(12px)", scale: 0.96, opacity: 0 }, { filter: "blur(0px)", scale: 1, opacity: 1, duration: 0.5, ease: "power2.inOut" }, T7-0.4);
+
+      // === SCENE 7: CLOSING ===
+      tl.from("#s7-title", { scale: 0.9, opacity: 0, duration: 0.7, ease: "expo.out" }, T7+0.3);
+      tl.from("#s7-stack", { y: 30, opacity: 0, duration: 0.6, ease: "power3.out" }, T7+1);
+      tl.from("#s7-stack > div", { x: -20, opacity: 0, duration: 0.35, stagger: 0.12, ease: "power2.out" }, T7+1.4);
+      tl.from("#s7-gh", { y: 20, opacity: 0, duration: 0.5, ease: "power2.out" }, T7+3);
+      tl.from("#s7-title + div + div + div", { opacity: 0, y: 20, duration: 0.6, ease: "power3.out" }, T7+4);
+      tl.from("#s7-thanks", { scale: 0.8, opacity: 0, duration: 0.7, ease: "back.out(1.3)" }, T7+6);
+
+      // Final fade
+      tl.to("#scene7", { opacity: 0, duration: 0.8, ease: "power2.in" }, T7+16);
+      tl.to(".bg-glow", { opacity: 0, duration: 0.8, ease: "power2.in" }, T7+16);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

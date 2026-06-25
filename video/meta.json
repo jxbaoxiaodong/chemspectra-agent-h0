@@ -1,0 +1,7 @@
+{
+  "name": "ChemSpectra Agent — H0 AWS+Vercel Hackathon Demo",
+  "description": "3-minute demo video for H0 Hackathon Track 2: Monetizable B2B App. Shows Vercel frontend, AWS DynamoDB evidence, and full-stack FTIR analysis workflow.",
+  "dimensions": { "width": 1920, "height": 1080 },
+  "duration": 180,
+  "fps": 30
+}
