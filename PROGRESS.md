@@ -1,10 +1,10 @@
 # H0 AWS+Vercel — 进度追踪
 
-> 最后更新: 2026-06-25
+> 最后更新: 2026-06-25 18:35
 
 ---
 
-## ✅ 已完成
+## ✅ 已完成 (18/25)
 
 | # | 事项 | 详情 |
 |---|------|------|
@@ -20,28 +20,26 @@
 | 10 | Devpost 注册 | 用户名 `ftir_fun` |
 | 11 | .env 配置 | AWS + dashscope + FTIR.fun 密钥已填入 |
 | 12 | boto3 安装 | 系统级 Python 已安装 |
+| 13 | Python 依赖安装 | `pip install -r requirements.txt` 全部已装 ✅ |
+| 14 | 后端启动验证 | `curl :8080/health` → `{"status":"ok","dynamodb":"connected","region":"us-east-2"}` ✅ |
+| 15 | GitHub 仓库创建 + 推送 | `github.com/jxbaoxiaodong/chemspectra-agent-h0` 公开，已推送 2 次 commit ✅ |
+| 16 | FTIR.fun API 确认 | `{"status":"ok","service":"ftirfun-api"}` 正常运行 ✅ |
+| 17 | **Next.js 前端构建** | 暗色主题 + 7 个组件 + 全栈 API 客户端 ✅ |
+| 18 | **agent.py 修复** | dashscope response `__getattr__` KeyError → 改用 `.get()` ✅ |
 
 ---
 
-## ⬜ 待完成
+## ⬜ 待完成 (7/25)
 
-| # | 事项 | 预计工时 | 依赖 |
+| # | 事项 | 预计工时 | 说明 |
 |---|------|:--:|------|
-| 1 | **安装 Python 依赖** | 2 min | — |
-|   | `pip install -r requirements.txt --break-system-packages` | | |
-| 2 | **启动后端验证** | 2 min | 安装依赖 |
-|   | `python3 server.py` → `curl localhost:8080/health` | | FTIR.fun API 需运行 |
-| 3 | **v0 生成前端** | 2 hr | — |
-|   | v0.app → 粘贴 prompt → 部署到 Vercel | | |
-| 4 | **前后端联调** | 2 hr | v0 前端 + 后端 |
-|   | 上传光谱 → 查看结果 → 追问 → 确认 → 下载报告 | | |
-| 5 | **AWS 数据库使用截图** | 10 min | 联调完成 |
-|   | DynamoDB Console → chemspectra-sessions 表中有实际数据 | | |
-| 6 | **Vercel 部署截图** | 5 min | v0 部署 |
-| 7 | **录制演示视频** | 3 hr | 联调完成 |
-|   | 3 分钟，YouTube/Youku 上传 | | |
-| 8 | **Devpost 提交** | 30 min | 全部完成 |
-| 9 | **旧邮箱申请撤销邮件** | 5 min | — |
+| 1 | **Vercel 部署** | 10 min | CLI 需浏览器交互登录；走 GitHub 集成路线 → vercel.com/import |
+| 2 | **AWS DynamoDB 截图** | 5 min | AWS Console → DynamoDB → chemspectra-sessions（已有 1 条真实数据） |
+| 3 | **Vercel 部署截图** | 5 min | Vercel Dashboard 项目列表 |
+| 4 | **录制演示视频** | 3 hr | 3 分钟，YouTube/Youku |
+| 5 | **Devpost 提交** | 30 min | 文字描述 + 截图 + 视频 + 链接 |
+| 6 | **旧邮箱申请撤销邮件** | 5 min | — |
+| 7 | **MCP 搜索修复（可选）** | 30 min | 目前 401，MCP 服务认证机制待查 |
 
 ---
 
@@ -55,25 +53,54 @@
 | `DYNAMODB_TABLE=chemspectra-sessions` | ✅ |
 | `DASHSCOPE_API_KEY` | ✅ |
 | `QWEN_MODEL=qwen3.7-max` | ✅ |
-| `FTIRFUN_API_KEY` | ⚠️ 需确认 |
-| `FTIRFUN_API_URL` | ⚠️ 需确认本地 API 是否运行 |
+| `FTIRFUN_API_KEY` | ✅ 已验证可调 REST API |
+| `FTIRFUN_API_URL` | ✅ `http://127.0.0.1:18080` 正常 |
 
 ---
 
-## 🎯 下一步操作
+## 🎯 Vercel 部署方法
+
+由于 Vercel CLI 需要浏览器交互登录，请使用以下方式：
+
+### 方法 1: Vercel Dashboard 导入 GitHub 仓库（推荐）
+
+1. 打开 https://vercel.com/new （可用代理访问）
+2. 用 GitHub 登录
+3. 选择导入 `jxbaoxiaodong/chemspectra-agent-h0`
+4. Framework 选择 **Next.js**
+5. Root Directory 设为 `frontend`
+6. 添加环境变量: `NEXT_PUBLIC_API_URL` = 后端公网地址
+7. 点击 Deploy
+
+### 方法 2: Vercel CLI（需先登录）
 
 ```bash
-# 1. 安装依赖
+export http_proxy=http://127.0.0.1:7897/
+export https_proxy=http://127.0.0.1:7897/
+cd /home/bob/projects/h0-aws-hackathon/frontend
+vercel login    # 浏览器授权
+vercel          # 按提示部署
+```
+
+### 部署后获取
+
+- **Vercel Project URL**: `https://chemspectra-agent-xxx.vercel.app`
+- **Vercel Team ID**: Dashboard → Settings → General
+
+---
+
+## 🚀 启动命令
+
+```bash
+# 后端
 cd /home/bob/projects/h0-aws-hackathon
-pip install -r requirements.txt --break-system-packages
-
-# 2. 确认 FTIR.fun API 在运行
-curl http://127.0.0.1:18080/health
-
-# 3. 启动后端
+source .env
 python3 server.py
+# → http://localhost:8080
 
-# 4. 验证
-curl http://localhost:8080/health
-# 预期: {"status":"ok","dynamodb":"connected","region":"us-east-2"}
+# 前端 (开发模式)
+cd /home/bob/projects/h0-aws-hackathon/frontend
+echo "NEXT_PUBLIC_API_URL=http://localhost:8080" > .env.local
+npx next dev
+# → http://localhost:3000
 ```
