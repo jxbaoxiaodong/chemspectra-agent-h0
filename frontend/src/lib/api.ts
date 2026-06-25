@@ -9,7 +9,7 @@ import type {
   ReportResponse,
 } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://ftir.fun/h0";
 
 /** POST /api/analyze — 提交光谱分析 */
 export async function analyze(data: AnalyzeRequest): Promise<AnalyzeResponse> {
