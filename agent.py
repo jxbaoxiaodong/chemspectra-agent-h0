@@ -452,7 +452,7 @@ use it. You only need to specify additional parameters like top_k or sample_type
             iteration += 1
             response_msg = self._call_qwen_with_tools(messages)
 
-            tool_calls = getattr(response_msg, "tool_calls", None) or []
+            tool_calls = response_msg.get("tool_calls") or [] if isinstance(response_msg, dict) else getattr(response_msg, "tool_calls", None) or []
             if not tool_calls:
                 # 最终综合分析——用流式调用让 thinking 可见
                 self._emit(session, "phase", {"phase": "Synthesis", "label": "Synthesizing multi-tool results..."})
@@ -466,13 +466,13 @@ use it. You only need to specify additional parameters like top_k or sample_type
                     else:
                         synthesis_text += chunk_text
                         self._emit(session, "synthesis_chunk", {"text": chunk_text})
-                session.synthesis = synthesis_text or response_msg.content or ""
+                session.synthesis = synthesis_text or response_msg.get("content", "") if isinstance(response_msg, dict) else response_msg.content or ""
                 session.step = "synthesized"
                 break
 
             messages.append({
                 "role": "assistant",
-                "content": response_msg.content or "",
+                "content": response_msg.get("content", "") if isinstance(response_msg, dict) else (response_msg.content or ""),
                 "tool_calls": [
                     {
                         "id": tc.get("id", f"call_{iteration}_{i}"),
@@ -709,12 +709,12 @@ Focus on resolving the specific conflicts above. Call tools that can provide cla
         ]
 
         response_msg = self._call_qwen_with_tools(messages)
-        tool_calls = getattr(response_msg, "tool_calls", None) or []
+        tool_calls = response_msg.get("tool_calls") or [] if isinstance(response_msg, dict) else getattr(response_msg, "tool_calls", None) or []
 
         if tool_calls:
             messages.append({
                 "role": "assistant",
-                "content": response_msg.content or "",
+                "content": response_msg.get("content", "") if isinstance(response_msg, dict) else response_msg.content or "",
                 "tool_calls": [
                     {
                         "id": tc.get("id", f"verify_{i}"),
