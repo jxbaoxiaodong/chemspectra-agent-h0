@@ -25,21 +25,21 @@
 | 15 | GitHub 仓库创建 + 推送 | `github.com/jxbaoxiaodong/chemspectra-agent-h0` 公开，已推送 2 次 commit ✅ |
 | 16 | FTIR.fun API 确认 | `{"status":"ok","service":"ftirfun-api"}` 正常运行 ✅ |
 | 17 | **Next.js 前端构建** | 暗色主题 + 7 个组件 + 全栈 API 客户端 ✅ |
-| 18 | **agent.py 修复** | dashscope response `__getattr__` KeyError → 改用 `.get()` ✅ |
+| 18 | **Vercel 部署 + 验证** | `chemspectra-agent-h0.vercel.app` 生产就绪，GitHub 自动部署 ✅ |
+| 19 | **后端公网部署** | `https://ftir.fun/h0` 通过 VPS Nginx + SSH 反向隧道联通 ✅ |
+| 20 | **全栈联调验证** | 前端 → Cloudflare → VPS → SSH隧道 → 本机 8080→FTIR.fun→DynamoDB 全链路通 ✅ |
 
 ---
 
-## ⬜ 待完成 (7/25)
+## ⬜ 待完成 (5/25)
 
 | # | 事项 | 预计工时 | 说明 |
 |---|------|:--:|------|
-| 1 | **Vercel 部署** | 10 min | CLI 需浏览器交互登录；走 GitHub 集成路线 → vercel.com/import |
-| 2 | **AWS DynamoDB 截图** | 5 min | AWS Console → DynamoDB → chemspectra-sessions（已有 1 条真实数据） |
-| 3 | **Vercel 部署截图** | 5 min | Vercel Dashboard 项目列表 |
-| 4 | **录制演示视频** | 3 hr | 3 分钟，YouTube/Youku |
-| 5 | **Devpost 提交** | 30 min | 文字描述 + 截图 + 视频 + 链接 |
-| 6 | **旧邮箱申请撤销邮件** | 5 min | — |
-| 7 | **MCP 搜索修复（可选）** | 30 min | 目前 401，MCP 服务认证机制待查 |
+| 1 | **AWS DynamoDB 截图** | 5 min | AWS Console → DynamoDB → chemspectra-sessions（已有真实数据） |
+| 2 | **Vercel 部署截图** | 5 min | Vercel Dashboard → chemspectra-agent-h0 项目列表 |
+| 3 | **录制演示视频** | 3 hr | 3 分钟，YouTube/Youku |
+| 4 | **Devpost 提交** | 30 min | 文字描述 + 截图 + 视频 + 链接 |
+| 5 | **旧邮箱申请撤销邮件** | 5 min | — |
 
 ---
 
