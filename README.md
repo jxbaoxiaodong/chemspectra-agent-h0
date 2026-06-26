@@ -41,7 +41,7 @@ pip install -r requirements.txt
 
 ```bash
 # AWS
-export AWS_REGION="us-east-1"
+export AWS_REGION="us-east-2"
 export AWS_ACCESS_KEY_ID="AKIAXXXXXXXXXXXXXXXX"
 export AWS_SECRET_ACCESS_KEY="xxxxxxxxxxxxxxxxxxxx"
 export DYNAMODB_TABLE="chemspectra-sessions"
@@ -68,7 +68,7 @@ python server.py
 
 ```bash
 curl http://localhost:8080/health
-# {"status":"ok","dynamodb":"connected","region":"us-east-1"}
+# {"status":"ok","dynamodb":"connected","region":"us-east-2"}
 ```
 
 ---

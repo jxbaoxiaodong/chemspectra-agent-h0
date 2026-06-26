@@ -34,7 +34,7 @@ logging.basicConfig(level=logging.INFO)
 
 # ── 配置 ──────────────────────────────────────────────────────────────────────
 
-AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
+AWS_REGION = os.environ.get("AWS_REGION", "us-east-2")
 DYNAMODB_TABLE = os.environ.get("DYNAMODB_TABLE", "chemspectra-sessions")
 
 app = FastAPI(
