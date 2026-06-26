@@ -53,8 +53,11 @@ WHAT IT DOES:
 TECH STACK:
 - Frontend: Vercel v0 (Next.js / React)
 - Backend: FastAPI (Python) with multi-round AI reasoning
-- Database: AWS DynamoDB — stores analysis sessions,
-  confidence traces, and historical records
+- Database: AWS DynamoDB — 2 tables, 2 GSIs, atomic
+  counters, conditional writes, TTL auto-expiry.
+  Sessions table with gsi-created (time-ordered query)
+  and gsi-material (material aggregation). Stats table
+  with atomic ADD counters for usage metrics.
 - AI Engine: ReAct agent with self-verification and
   cross-validation (Qwen-3.7-Max)
 - Domain API: FTIR.fun spectral library (130,000+

@@ -56,27 +56,39 @@ agent = ChemSpectraAgent()
 
 # ── DynamoDB 初始化 ───────────────────────────────────────────────────────────
 
+STATS_TABLE = os.environ.get("DYNAMODB_STATS_TABLE", "chemspectra-stats")
+
 try:
     dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
+    dynamodb_client = boto3.client("dynamodb", region_name=AWS_REGION)
     sessions_table = dynamodb.Table(DYNAMODB_TABLE)
-    # 验证表是否存在
+    stats_table = dynamodb.Table(STATS_TABLE)
     sessions_table.table_status
     DYNAMODB_ENABLED = True
     logger.info("DynamoDB connected: table=%s region=%s", DYNAMODB_TABLE, AWS_REGION)
 except (ClientError, Exception) as e:
     logger.warning("DynamoDB not available — falling back to in-memory storage: %s", e)
     DYNAMODB_ENABLED = False
-    # 内存回退（开发/测试用）
     _memory_sessions: dict[str, dict] = {}
 
 
-def _save_session_to_dynamodb(session) -> None:
-    """将 Session 核心数据持久化到 DynamoDB。"""
+def _save_session_to_dynamodb(session, *, allow_overwrite: bool = True) -> None:
+    """将 Session 核心数据持久化到 DynamoDB。
+
+    allow_overwrite=False 时使用条件写入，防止并发覆盖已确认的 session。
+    """
     if not DYNAMODB_ENABLED:
         return
+    now = datetime.now(timezone.utc)
+    n_tools = len(session.tool_calls_log)
+    top_match = (
+        session.search_results[0].get("name", "")
+        if session.search_results else ""
+    )
     try:
         item = {
             "session_id": session.session_id,
+            "pk_all": "ALL",
             "step": session.step,
             "user_input": session.user_input,
             "sample_context": session.sample_context,
@@ -86,11 +98,8 @@ def _save_session_to_dynamodb(session) -> None:
             "tool_calls_log": json.dumps(session.tool_calls_log, ensure_ascii=False),
             "search_summary": session.search_summary,
             "n_matches": len(session.search_results),
-            "top_match": (
-                session.search_results[0].get("name", "")
-                if session.search_results else ""
-            ),
-            "top_score": (
+            "top_match": top_match or "unknown",
+            "top_score": str(
                 session.search_results[0].get("similarity", 0)
                 if session.search_results else 0
             ),
@@ -98,12 +107,55 @@ def _save_session_to_dynamodb(session) -> None:
             "react_iterations": session.react_iterations,
             "verification_rounds": session.verification_rounds,
             "repair_count": session.repair_count,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "ttl": int(datetime.now(timezone.utc).timestamp()) + 86400 * 30,  # 30 天过期
+            "n_tools_called": n_tools,
+            "created_at": now.isoformat(),
+            "ttl": int(now.timestamp()) + 86400 * 30,
         }
-        sessions_table.put_item(Item=item)
+        put_kwargs = {"Item": item}
+        if not allow_overwrite:
+            put_kwargs["ConditionExpression"] = (
+                "attribute_not_exists(session_id) OR step <> :confirmed"
+            )
+            put_kwargs["ExpressionAttributeValues"] = {":confirmed": "confirmed"}
+        sessions_table.put_item(**put_kwargs)
+    except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
+        logger.warning("Conditional write rejected: session %s already confirmed", session.session_id)
     except Exception as e:
         logger.error("DynamoDB write failed (non-fatal): %s", e)
+
+    _increment_stats("total_analyses", n_tools)
+
+
+def _increment_stats(stat_type: str, n_tools: int) -> None:
+    """原子计数器——追踪平台使用量统计。"""
+    if not DYNAMODB_ENABLED:
+        return
+    try:
+        stats_table.update_item(
+            Key={"stat_id": "global"},
+            UpdateExpression=(
+                "ADD total_analyses :one, total_tools_called :tools"
+            ),
+            ExpressionAttributeValues={":one": 1, ":tools": n_tools},
+        )
+    except Exception as e:
+        logger.error("Stats increment failed (non-fatal): %s", e)
+
+
+def _get_stats() -> dict:
+    """读取平台使用量统计。"""
+    if not DYNAMODB_ENABLED:
+        return {}
+    try:
+        resp = stats_table.get_item(Key={"stat_id": "global"})
+        item = resp.get("Item", {})
+        return {
+            "total_analyses": int(item.get("total_analyses", 0)),
+            "total_tools_called": int(item.get("total_tools_called", 0)),
+        }
+    except Exception as e:
+        logger.error("Stats read failed: %s", e)
+        return {}
 
 
 def _load_session_from_dynamodb(session_id: str) -> dict | None:
@@ -119,9 +171,36 @@ def _load_session_from_dynamodb(session_id: str) -> dict | None:
 
 
 def _list_recent_sessions(limit: int = 20) -> list[dict]:
-    """列出最近的 Session 记录（供 /api/history 使用）。"""
+    """列出最近的 Session 记录——使用 GSI Query 替代 Scan。"""
     if not DYNAMODB_ENABLED:
         return []
+    try:
+        resp = sessions_table.query(
+            IndexName="gsi-created",
+            KeyConditionExpression="pk_all = :all",
+            ExpressionAttributeValues={":all": "ALL"},
+            ScanIndexForward=False,
+            Limit=limit,
+            ProjectionExpression=(
+                "session_id, created_at, #s, user_input, "
+                "top_match, top_score, n_matches, filename"
+            ),
+            ExpressionAttributeNames={"#s": "step"},
+        )
+        return resp.get("Items", [])
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ValidationException":
+            logger.warning("GSI gsi-created not found, falling back to scan")
+            return _list_recent_sessions_fallback(limit)
+        logger.error("DynamoDB query failed: %s", e)
+        return []
+    except Exception as e:
+        logger.error("DynamoDB query failed: %s", e)
+        return []
+
+
+def _list_recent_sessions_fallback(limit: int = 20) -> list[dict]:
+    """Scan 回退——GSI 不可用时使用。"""
     try:
         resp = sessions_table.scan(
             Limit=limit,
@@ -136,6 +215,36 @@ def _list_recent_sessions(limit: int = 20) -> list[dict]:
         return items
     except Exception as e:
         logger.error("DynamoDB scan failed: %s", e)
+        return []
+
+
+def _query_by_material(material: str, limit: int = 20) -> list[dict]:
+    """按材料名称查询分析历史——使用 GSI gsi-material。"""
+    if not DYNAMODB_ENABLED:
+        return []
+    try:
+        resp = sessions_table.query(
+            IndexName="gsi-material",
+            KeyConditionExpression="top_match = :mat",
+            ExpressionAttributeValues={":mat": material},
+            ScanIndexForward=False,
+            Limit=limit,
+            ProjectionExpression=(
+                "session_id, created_at, #s, user_input, "
+                "top_match, top_score, n_matches, filename, "
+                "react_iterations, verification_rounds"
+            ),
+            ExpressionAttributeNames={"#s": "step"},
+        )
+        return resp.get("Items", [])
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ValidationException":
+            logger.warning("GSI gsi-material not found")
+        else:
+            logger.error("DynamoDB material query failed: %s", e)
+        return []
+    except Exception as e:
+        logger.error("DynamoDB material query failed: %s", e)
         return []
 
 
@@ -155,6 +264,8 @@ async def root():
             "confirm": "POST /api/confirm",
             "report": "GET /api/report/{session_id}",
             "history": "GET /api/history",
+            "material": "GET /api/material/{name}",
+            "analytics": "GET /api/analytics",
             "health": "GET /health",
         },
     }
@@ -300,7 +411,8 @@ async def confirm(request: Request):
         return JSONResponse({"error": str(e)}, status_code=500)
 
     session.human_confirmed = accept
-    _save_session_to_dynamodb(session)
+    session.step = "confirmed"
+    _save_session_to_dynamodb(session, allow_overwrite=False)
 
     return {
         "session_id": session_id,
@@ -338,12 +450,47 @@ async def get_report(session_id: str):
 
 @app.get("/api/history")
 async def history(limit: int = 20):
-    """查询历史分析记录列表。"""
+    """查询历史分析记录列表——使用 GSI Query 高效查询。"""
     sessions = _list_recent_sessions(limit)
     return {
         "n_sessions": len(sessions),
         "storage": "dynamodb" if DYNAMODB_ENABLED else "memory-fallback",
+        "query_method": "gsi-created" if DYNAMODB_ENABLED else "memory",
         "sessions": sessions,
+    }
+
+
+@app.get("/api/material/{material_name}")
+async def material_history(material_name: str, limit: int = 20):
+    """按材料名称查询分析历史——使用 GSI gsi-material 高效聚合。
+
+    示例: GET /api/material/Polyethylene%20terephthalate → 所有 PET 分析记录
+    """
+    sessions = _query_by_material(material_name, limit)
+    return {
+        "material": material_name,
+        "n_sessions": len(sessions),
+        "query_method": "gsi-material",
+        "sessions": sessions,
+    }
+
+
+@app.get("/api/analytics")
+async def analytics():
+    """平台使用量统计——DynamoDB 原子计数器驱动。"""
+    stats = _get_stats()
+    recent = _list_recent_sessions(5)
+    return {
+        "platform_stats": stats,
+        "storage": "dynamodb" if DYNAMODB_ENABLED else "memory-fallback",
+        "recent_analyses": recent,
+        "dynamodb_features_used": [
+            "GSI gsi-created (time-ordered history query)",
+            "GSI gsi-material (material-based aggregation)",
+            "Atomic counters (usage statistics)",
+            "Conditional writes (prevent overwrite of confirmed sessions)",
+            "TTL auto-expiry (30-day session cleanup)",
+        ],
     }
 
 
