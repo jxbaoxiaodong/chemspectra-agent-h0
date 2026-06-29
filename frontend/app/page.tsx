@@ -95,6 +95,7 @@ export default function Home() {
   const [confirmed, setConfirmed] = useState(false);
 
   const [agentLines, setAgentLines] = useState<ProcessedLine[]>([]);
+  const analysisStartRef = useRef<number>(0);
   const [historyRefresh, setHistoryRefresh] = useState(0);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const eventsEndRef = useRef<HTMLDivElement>(null);
@@ -129,6 +130,7 @@ export default function Home() {
         analysis_type: analysisType,
       });
 
+      analysisStartRef.current = Date.now();
       setAgentLines([{ text: "Analysis started. Agent is reasoning...", kind: "phase" }]);
 
       pollingRef.current = setInterval(async () => {
@@ -136,9 +138,14 @@ export default function Home() {
           const status = await getStatus(session_id);
 
           if (status.events && status.events.length > 0) {
+            const elapsed = ((Date.now() - analysisStartRef.current) / 1000).toFixed(0);
             const newLines = processEvents(status.events);
             if (newLines.length > 0) {
-              setAgentLines((prev) => [...prev, ...newLines]);
+              const stamped = newLines.map((l) => ({
+                ...l,
+                text: `[${elapsed}s] ${l.text}`,
+              }));
+              setAgentLines((prev) => [...prev, ...stamped]);
             }
           }
 
