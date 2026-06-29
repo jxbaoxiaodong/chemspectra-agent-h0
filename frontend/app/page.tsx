@@ -209,15 +209,25 @@ export default function Home() {
             </div>
           )}
 
-          {/* 加载骨架屏 */}
+          {/* Agent reasoning progress */}
           {loading && (
-            <div className="space-y-4 rounded-2xl border border-slate-700 bg-slate-800/30 p-6">
-              <div className="animate-shimmer h-8 w-2/3 rounded-lg" />
-              <div className="animate-shimmer h-5 w-1/3 rounded-lg" />
-              <div className="space-y-2">
-                <div className="animate-shimmer h-4 w-full rounded" />
-                <div className="animate-shimmer h-4 w-5/6 rounded" />
-                <div className="animate-shimmer h-4 w-4/6 rounded" />
+            <div className="space-y-4 rounded-2xl border border-cyan-500/20 bg-slate-800/30 p-6">
+              <div className="flex items-center gap-3">
+                <svg className="h-5 w-5 animate-spin text-cyan-400 shrink-0" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span className="text-sm font-semibold text-cyan-300">Agent ReAct Reasoning Loop Running...</span>
+              </div>
+              <div className="space-y-2 text-sm text-slate-400 font-mono">
+                <p>▶ Selecting tools based on input peaks and sample context...</p>
+                <p>▶ Calling <span className="text-indigo-300">identify_material</span> → querying 130,000+ reference spectra</p>
+                <p>▶ Calling <span className="text-violet-300">explain_peaks</span> → assigning chemical origins</p>
+                <p>▶ Calling <span className="text-teal-300">assign_functional_groups</span> → IR group mapping</p>
+                <p>▶ Cross-validating tool results → checking for evidence conflicts...</p>
+                <p className="text-amber-400">▶ Low confidence detected — triggering self-verification round...</p>
+                <p>▶ Running additional tool calls to resolve conflicts...</p>
+                <p className="text-slate-500 text-xs mt-3">This typically takes 2–4 minutes. Please wait.</p>
               </div>
             </div>
           )}
