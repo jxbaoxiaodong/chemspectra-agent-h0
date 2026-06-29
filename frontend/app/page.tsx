@@ -187,14 +187,6 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen">
-      {/* Left sidebar — analysis history */}
-      <aside className="w-72 shrink-0 border-r border-slate-800 bg-slate-900/50 p-4 overflow-y-auto">
-        <HistorySidebar
-          onSelect={() => {}}
-          refreshTrigger={historyRefresh}
-        />
-      </aside>
-
       {/* Main content */}
       <main className="flex-1 p-6 lg:p-10 overflow-y-auto">
         <div className="mx-auto max-w-3xl space-y-8">
