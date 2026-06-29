@@ -19,6 +19,7 @@ import base64
 import json
 import logging
 import os
+import threading
 from datetime import datetime, timezone
 
 import boto3
@@ -53,6 +54,9 @@ app.add_middleware(
 )
 
 agent = ChemSpectraAgent()
+
+# 后台分析任务存储：session_id -> {"status": "processing"|"done"|"error", "result": ..., "error": ...}
+_bg_tasks: dict[str, dict] = {}
 
 # ── DynamoDB 初始化 ───────────────────────────────────────────────────────────
 
@@ -283,6 +287,27 @@ async def health():
 # ── 核心 API ──────────────────────────────────────────────────────────────────
 
 
+def _run_analysis_bg(session, user_input, file_b64, filename, peak_list, context):
+    """后台线程执行分析流水线。"""
+    sid = session.session_id
+    try:
+        result = agent.run_pipeline(
+            session,
+            user_input=user_input,
+            file_base64=file_b64,
+            filename=filename,
+            peaks=peak_list,
+            sample_context=context,
+        )
+        _save_session_to_dynamodb(session)
+        _bg_tasks[sid]["status"] = "done"
+        _bg_tasks[sid]["result"] = result
+    except Exception as e:
+        logger.exception("Analysis pipeline failed: %s", e)
+        _bg_tasks[sid]["status"] = "error"
+        _bg_tasks[sid]["error"] = str(e)
+
+
 @app.post("/api/analyze")
 async def analyze(
     file: UploadFile | None = File(None),
@@ -290,11 +315,7 @@ async def analyze(
     peaks: str = Form(""),
     analysis_type: str = Form("identify"),
 ):
-    """运行完整的光谱分析流水线。
-
-    接受光谱文件或峰位数据，启动 Agent 的 ReAct 推理循环，
-    返回多工具分析结果和置信度追踪。
-    """
+    """启动光谱分析（异步）。立即返回 session_id，前端轮询 /api/status 获取进度。"""
     file_b64 = None
     filename = "spectrum.0"
 
@@ -322,28 +343,42 @@ async def analyze(
 
     user_input = f"{analysis_type}: {context}" if context else analysis_type
     session = agent.new_session()
+    sid = session.session_id
 
-    try:
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(
-            None,
-            lambda: agent.run_pipeline(
-                session,
-                user_input=user_input,
-                file_base64=file_b64,
-                filename=filename,
-                peaks=peak_list,
-                sample_context=context,
-            ),
-        )
-    except Exception as e:
-        logger.exception("Analysis pipeline failed: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+    _bg_tasks[sid] = {"status": "processing"}
 
-    # 持久化到 DynamoDB
-    _save_session_to_dynamodb(session)
+    thread = threading.Thread(
+        target=_run_analysis_bg,
+        args=(session, user_input, file_b64, filename, peak_list, context),
+        daemon=True,
+    )
+    thread.start()
 
-    return result
+    return {"session_id": sid, "status": "processing"}
+
+
+@app.get("/api/status/{session_id}")
+async def get_status(session_id: str):
+    """轮询分析进度。返回真实的 Agent 事件流。"""
+    task = _bg_tasks.get(session_id)
+    if not task:
+        return JSONResponse({"error": "Session not found"}, status_code=404)
+
+    session = agent.get_session(session_id)
+    events = []
+    if session:
+        while not session.event_queue.empty():
+            try:
+                events.append(session.event_queue.get_nowait())
+            except Exception:
+                break
+
+    if task["status"] == "done":
+        return {"status": "done", "events": events, "result": task["result"]}
+    elif task["status"] == "error":
+        return {"status": "error", "events": events, "error": task.get("error", "Unknown error")}
+    else:
+        return {"status": "processing", "events": events}
 
 
 @app.post("/api/followup")

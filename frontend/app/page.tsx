@@ -1,20 +1,59 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import FileUpload from "@/src/components/FileUpload";
 import ResultsPanel from "@/src/components/ResultsPanel";
 import FollowUpChat from "@/src/components/FollowUpChat";
 import ReportDownload from "@/src/components/ReportDownload";
 import HistorySidebar from "@/src/components/HistorySidebar";
-import { analyze, confirm as confirmApi } from "@/src/lib/api";
+import { analyzeStart, getStatus, confirm as confirmApi } from "@/src/lib/api";
 import type { AnalyzeResponse } from "@/src/lib/types";
 
 type Tab = "upload" | "peaks";
+
+interface AgentEvent {
+  type: string;
+  data: Record<string, unknown>;
+}
 
 const ANALYSIS_TYPES = [
   { value: "identify", label: "Identify Material", desc: "Identify what an unknown sample is" },
   { value: "explain", label: "Explain Peaks", desc: "Assign chemical origin to each absorption peak" },
 ];
+
+const TOOL_LABELS: Record<string, string> = {
+  identify_material: "Material Identification",
+  explain_peaks: "Peak Explanation",
+  assign_functional_groups: "Functional Group Assignment",
+  match_library_topk: "Library Matching",
+  search_public_results: "Public Result Search",
+};
+
+function formatEvent(ev: AgentEvent): string | null {
+  if (ev.type === "phase") return `${ev.data.label || ev.data.phase}`;
+  if (ev.type === "tool_call") {
+    const name = TOOL_LABELS[ev.data.tool as string] || ev.data.tool;
+    return `Tool call: ${name}`;
+  }
+  if (ev.type === "tool_result") {
+    const name = TOOL_LABELS[ev.data.tool as string] || ev.data.tool;
+    const conf = ev.data.confidence;
+    return conf != null
+      ? `${name} → confidence ${(conf as number).toFixed(4)}`
+      : `${name} → done`;
+  }
+  if (ev.type === "verification_triggered") {
+    const c = ev.data.confidence as number;
+    return `Low confidence (${(c * 100).toFixed(0)}%) — triggering self-verification round...`;
+  }
+  if (ev.type === "verification_done") {
+    const before = ev.data.confidence_before as number;
+    const after = ev.data.confidence_after as number;
+    return `Verification complete: ${(before * 100).toFixed(0)}% → ${(after * 100).toFixed(0)}%`;
+  }
+  if (ev.type === "synthesis_chunk" || ev.type === "thinking") return null;
+  return null;
+}
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -28,7 +67,20 @@ export default function Home() {
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [confirmed, setConfirmed] = useState(false);
 
+  const [agentEvents, setAgentEvents] = useState<string[]>([]);
   const [historyRefresh, setHistoryRefresh] = useState(0);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const eventsEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    eventsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [agentEvents]);
+
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
 
   const handleAnalyze = useCallback(async () => {
     if (!file && !peaks.trim()) {
@@ -40,19 +92,49 @@ export default function Home() {
     setError(null);
     setResult(null);
     setConfirmed(false);
+    setAgentEvents([]);
 
     try {
-      const resp = await analyze({
+      const { session_id } = await analyzeStart({
         file: file || undefined,
         peaks: peaks.trim() || undefined,
         context: context.trim() || undefined,
         analysis_type: analysisType,
-      } as Parameters<typeof analyze>[0]);
-      setResult(resp);
-      setHistoryRefresh((n) => n + 1);
+      });
+
+      setAgentEvents(["Analysis started. Agent is reasoning..."]);
+
+      pollingRef.current = setInterval(async () => {
+        try {
+          const status = await getStatus(session_id);
+
+          if (status.events && status.events.length > 0) {
+            const newLines = status.events
+              .map(formatEvent)
+              .filter((s): s is string => s !== null);
+            if (newLines.length > 0) {
+              setAgentEvents((prev) => [...prev, ...newLines]);
+            }
+          }
+
+          if (status.status === "done") {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            pollingRef.current = null;
+            setResult(status.result || null);
+            setHistoryRefresh((n) => n + 1);
+            setLoading(false);
+          } else if (status.status === "error") {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            pollingRef.current = null;
+            setError(status.error || "Analysis failed.");
+            setLoading(false);
+          }
+        } catch {
+          // polling fetch failed, keep retrying
+        }
+      }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Analysis failed.");
-    } finally {
+      setError(err instanceof Error ? err.message : "Failed to start analysis.");
       setLoading(false);
     }
   }, [file, peaks, context, analysisType]);
@@ -81,10 +163,10 @@ export default function Home() {
         />
       </aside>
 
-      {/* 主内容区 */}
+      {/* Main content */}
       <main className="flex-1 p-6 lg:p-10 overflow-y-auto">
         <div className="mx-auto max-w-3xl space-y-8">
-          {/* 头部 */}
+          {/* Header */}
           <header className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight text-white">
               ChemSpectra Agent
@@ -94,9 +176,9 @@ export default function Home() {
             </p>
           </header>
 
-          {/* 输入区 */}
+          {/* Input section */}
           <section className="space-y-4 rounded-2xl border border-slate-700 bg-slate-800/30 p-6">
-            {/* Tab 切换 */}
+            {/* Tab toggle */}
             <div className="flex gap-1 rounded-lg bg-slate-900/50 p-1">
               <button
                 onClick={() => setActiveTab("upload")}
@@ -120,12 +202,12 @@ export default function Home() {
               </button>
             </div>
 
-            {/* 文件上传 */}
+            {/* File upload */}
             {activeTab === "upload" && (
               <FileUpload onFileChange={setFile} disabled={loading} />
             )}
 
-            {/* 峰位输入 */}
+            {/* Peak input */}
             {activeTab === "peaks" && (
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-300">Peak Positions (cm⁻¹)</label>
@@ -140,7 +222,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* 样品描述 */}
+            {/* Sample description */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300">Sample Description (optional)</label>
               <input
@@ -153,7 +235,7 @@ export default function Home() {
               />
             </div>
 
-            {/* 分析类型 */}
+            {/* Analysis type */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300">Analysis Type</label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -175,7 +257,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 提交按钮 */}
+            {/* Submit button */}
             <button
               onClick={handleAnalyze}
               disabled={loading || (!file && !peaks.trim())}
@@ -196,7 +278,7 @@ export default function Home() {
             </button>
           </section>
 
-          {/* 错误提示 */}
+          {/* Error */}
           {error && (
             <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4">
               <div className="flex items-center gap-2">
@@ -209,30 +291,36 @@ export default function Home() {
             </div>
           )}
 
-          {/* Agent reasoning progress */}
-          {loading && (
-            <div className="space-y-4 rounded-2xl border border-cyan-500/20 bg-slate-800/30 p-6">
-              <div className="flex items-center gap-3">
-                <svg className="h-5 w-5 animate-spin text-cyan-400 shrink-0" viewBox="0 0 24 24" fill="none">
+          {/* Agent reasoning live log */}
+          {loading && agentEvents.length > 0 && (
+            <div className="rounded-2xl border border-cyan-500/20 bg-slate-900/50 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <svg className="h-4 w-4 animate-spin text-cyan-400 shrink-0" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <span className="text-sm font-semibold text-cyan-300">Agent ReAct Reasoning Loop Running...</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">Agent Reasoning Log</span>
               </div>
-              <div className="space-y-2 text-sm text-slate-400 font-mono">
-                <p>▶ Selecting tools based on input peaks and sample context...</p>
-                <p>▶ Calling <span className="text-indigo-300">identify_material</span> → querying 130,000+ reference spectra</p>
-                <p>▶ Calling <span className="text-violet-300">explain_peaks</span> → assigning chemical origins</p>
-                <p>▶ Calling <span className="text-teal-300">assign_functional_groups</span> → IR group mapping</p>
-                <p>▶ Cross-validating tool results → checking for evidence conflicts...</p>
-                <p className="text-amber-400">▶ Low confidence detected — triggering self-verification round...</p>
-                <p>▶ Running additional tool calls to resolve conflicts...</p>
-                <p className="text-slate-500 text-xs mt-3">This typically takes 2–4 minutes. Please wait.</p>
+              <div className="max-h-48 overflow-y-auto space-y-1 font-mono text-xs">
+                {agentEvents.map((line, i) => (
+                  <p key={i} className={
+                    line.includes("verification") || line.includes("Low confidence")
+                      ? "text-amber-400"
+                      : line.includes("Tool call")
+                        ? "text-indigo-300"
+                        : line.includes("→")
+                          ? "text-emerald-400"
+                          : "text-slate-400"
+                  }>
+                    ▶ {line}
+                  </p>
+                ))}
+                <div ref={eventsEndRef} />
               </div>
             </div>
           )}
 
-          {/* 分析结果 */}
+          {/* Results */}
           {result && !loading && (
             <section className="space-y-6">
               <ResultsPanel
@@ -242,7 +330,7 @@ export default function Home() {
                 sessionId={result.session_id}
               />
 
-              {/* 确认 + 下载报告 */}
+              {/* Confirm + download report */}
               {result.step === "awaiting_confirmation" && (
                 <div className="flex items-center gap-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
                   <div className="flex-1">
@@ -263,7 +351,7 @@ export default function Home() {
                 </div>
               )}
 
-              {/* 已确认状态 */}
+              {/* Confirmed state */}
               {confirmed && (
                 <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
                   <div className="flex items-center gap-2 text-emerald-300">
@@ -275,7 +363,7 @@ export default function Home() {
                 </div>
               )}
 
-              {/* 追问聊天 */}
+              {/* Follow-up chat */}
               <FollowUpChat sessionId={result.session_id} disabled={loading} />
             </section>
           )}
