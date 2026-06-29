@@ -1,45 +1,50 @@
-/** 分析请求 */
 export interface AnalyzeRequest {
   file?: File;
   peaks?: string;
   context?: string;
-  analysis_type: "identify" | "explain" | "functional_groups" | "deformulate" | "screening";
+  analysis_type: string;
 }
 
-/** 确认请求 */
 export interface ConfirmRequest {
   session_id: string;
   accept: boolean;
 }
 
-/** 追问请求 */
 export interface FollowUpRequest {
   session_id: string;
   question: string;
 }
 
-/** Agent 指标 */
 export interface AgentMetrics {
-  iterations: number;
+  react_iterations: number;
   verification_rounds: number;
-  repairs: number;
+  repair_count: number;
+  evidence_conflicts: number;
   confidence_trace: number[];
+  total_llm_calls: number;
 }
 
-/** 确认信息 */
+export interface Candidate {
+  rank: number;
+  name: string;
+  cas: string;
+  score: number;
+}
+
 export interface Confirmation {
-  top_match: string;
-  cas_number: string;
-  similarity_score: number;
+  best_match: { name: string; cas: string; score: number };
+  verdict: string;
+  reasoning: string;
   confidence: number;
-  functional_groups: string[];
-  summary: string;
-  evidence_sources: string[];
+  flags: string[];
+  candidates: Candidate[];
+  search_summary: string;
+  tools_called: string[];
+  synthesis: string;
 }
 
-/** 分析响应 */
 export interface AnalyzeResponse {
-  step: "awaiting_confirmation" | "needs_clarification" | "completed";
+  step: string;
   session_id: string;
   tools_called: string[];
   n_tools: number;
@@ -47,10 +52,8 @@ export interface AnalyzeResponse {
   n_matches?: number;
   confirmation?: Confirmation;
   agent_metrics?: AgentMetrics;
-  question?: string;
 }
 
-/** 历史记录条目 */
 export interface HistoryEntry {
   session_id: string;
   filename: string;
@@ -62,29 +65,24 @@ export interface HistoryEntry {
   created_at: string;
 }
 
-/** 历史记录响应 */
 export interface HistoryResponse {
   n_sessions: number;
   storage: string;
   sessions: HistoryEntry[];
 }
 
-/** 报告响应 */
 export interface ReportResponse {
   session_id: string;
   markdown: string;
   filename: string;
 }
 
-/** 追问响应 */
 export interface FollowUpResponse {
   session_id: string;
   question: string;
   answer: string;
-  step: string;
 }
 
-/** 确认结果响应 */
 export interface ConfirmResultResponse {
   session_id: string;
   step: string;

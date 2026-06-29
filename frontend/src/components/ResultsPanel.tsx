@@ -19,65 +19,92 @@ export default function ResultsPanel({
 }: ResultsPanelProps) {
   if (!confirmation) return null;
 
+  const m = confirmation.best_match;
+
   return (
     <div className="space-y-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
       {/* Top match */}
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-xl font-bold text-white">{confirmation.top_match}</h3>
-          {confirmation.cas_number && (
+          <h3 className="text-xl font-bold text-white">{m?.name || "Unknown"}</h3>
+          {m?.cas && m.cas !== "-" && (
             <p className="mt-1 text-sm text-slate-400">
-              CAS: <code className="text-cyan-300">{confirmation.cas_number}</code>
+              CAS: <code className="text-cyan-300">{m.cas}</code>
             </p>
           )}
-          {confirmation.similarity_score > 0 && (
+          {m?.score > 0 && (
             <p className="mt-0.5 text-sm text-slate-400">
-              Similarity: <span className="text-white font-mono">{confirmation.similarity_score.toFixed(4)}</span>
+              Library Match Score: <span className="text-white font-mono">{m.score.toFixed(4)}</span>
             </p>
           )}
         </div>
         <ConfidenceBadge confidence={confirmation.confidence} size="lg" />
       </div>
 
+      {/* Verdict + reasoning */}
+      {confirmation.reasoning && (
+        <div className="space-y-2">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Agent Reasoning</h4>
+          <div className="rounded-lg border border-slate-700 bg-slate-900/50 p-4 text-sm leading-relaxed text-slate-300">
+            {confirmation.reasoning}
+          </div>
+        </div>
+      )}
+
+      {/* Flags */}
+      {confirmation.flags && confirmation.flags.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Analysis Flags</h4>
+          <ul className="space-y-1">
+            {confirmation.flags.map((flag, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-amber-300">
+                <span className="mt-0.5 shrink-0">⚠️</span>
+                <span>{flag}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Tools used */}
       <ToolBadges tools={toolsCalled} />
 
-      {/* Agent synthesis */}
-      {confirmation.summary && (
+      {/* Candidates */}
+      {confirmation.candidates && confirmation.candidates.length > 1 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Analysis Summary</h4>
-          <div className="prose prose-invert prose-sm max-w-none rounded-lg border border-slate-700 bg-slate-900/50 p-4 text-sm leading-relaxed text-slate-300 whitespace-pre-wrap">
-            {confirmation.summary}
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Library Match Candidates</h4>
+          <div className="rounded-lg border border-slate-700 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-700 bg-slate-900/50">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">#</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Material</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">CAS</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-slate-500">Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {confirmation.candidates.slice(0, 5).map((c, i) => (
+                  <tr key={i} className={`border-b border-slate-800 ${i === 0 ? "bg-cyan-500/5" : ""}`}>
+                    <td className="px-3 py-2 text-slate-500">{c.rank}</td>
+                    <td className="px-3 py-2 text-white font-medium">{c.name}</td>
+                    <td className="px-3 py-2 text-slate-400 font-mono text-xs">{c.cas !== "-" ? c.cas : "—"}</td>
+                    <td className="px-3 py-2 text-right font-mono text-cyan-300">{c.score.toFixed(4)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {/* Functional groups */}
-      {confirmation.functional_groups && confirmation.functional_groups.length > 0 && (
+      {/* Full synthesis */}
+      {confirmation.synthesis && (
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Identified Functional Groups</h4>
-          <div className="flex flex-wrap gap-2">
-            {confirmation.functional_groups.map((group, i) => (
-              <span
-                key={i}
-                className="rounded-lg bg-teal-500/10 border border-teal-500/20 px-3 py-1 text-sm text-teal-300"
-              >
-                {group}
-              </span>
-            ))}
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Full Analysis Report</h4>
+          <div className="prose prose-invert prose-sm max-w-none rounded-lg border border-slate-700 bg-slate-900/50 p-4 text-sm leading-relaxed text-slate-300 whitespace-pre-wrap max-h-96 overflow-y-auto">
+            {confirmation.synthesis}
           </div>
-        </div>
-      )}
-
-      {/* Evidence sources */}
-      {confirmation.evidence_sources && confirmation.evidence_sources.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Evidence Sources</h4>
-          <ul className="list-inside list-disc space-y-1 text-sm text-slate-400">
-            {confirmation.evidence_sources.map((source, i) => (
-              <li key={i}>{source}</li>
-            ))}
-          </ul>
         </div>
       )}
 
@@ -85,9 +112,9 @@ export default function ResultsPanel({
       {agentMetrics && (
         <div className="rounded-lg border border-slate-700 bg-slate-900/30 p-4">
           <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Agent Metrics</h4>
-          <div className="grid grid-cols-4 gap-3 text-center">
+          <div className="grid grid-cols-5 gap-3 text-center">
             <div>
-              <div className="text-lg font-bold text-white">{agentMetrics.iterations}</div>
+              <div className="text-lg font-bold text-white">{agentMetrics.react_iterations}</div>
               <div className="text-xs text-slate-500">ReAct Rounds</div>
             </div>
             <div>
@@ -95,19 +122,23 @@ export default function ResultsPanel({
               <div className="text-xs text-slate-500">Verifications</div>
             </div>
             <div>
-              <div className="text-lg font-bold text-white">{agentMetrics.repairs}</div>
+              <div className="text-lg font-bold text-white">{agentMetrics.total_llm_calls}</div>
+              <div className="text-xs text-slate-500">LLM Calls</div>
+            </div>
+            <div>
+              <div className="text-lg font-bold text-white">{agentMetrics.repair_count}</div>
               <div className="text-xs text-slate-500">Self-Repairs</div>
             </div>
             <div>
               <div className="text-lg font-bold text-white font-mono">
-                {agentMetrics.confidence_trace?.length
-                  ? (agentMetrics.confidence_trace[agentMetrics.confidence_trace.length - 1] * 100).toFixed(0)
+                {confirmation.confidence != null
+                  ? `${(confirmation.confidence * 100).toFixed(0)}%`
                   : "—"}
               </div>
-              <div className="text-xs text-slate-500">Final Confidence %</div>
+              <div className="text-xs text-slate-500">Final Confidence</div>
             </div>
           </div>
-          {agentMetrics.confidence_trace && agentMetrics.confidence_trace.length > 1 && (
+          {agentMetrics.confidence_trace && agentMetrics.confidence_trace.length > 0 && (
             <div className="mt-3">
               <div className="text-xs text-slate-500 mb-1">Confidence Trace</div>
               <div className="flex items-center gap-1">
@@ -121,6 +152,14 @@ export default function ResultsPanel({
                     </span>
                   </span>
                 ))}
+                {confirmation.confidence != null && (
+                  <>
+                    <span className="text-slate-600">→</span>
+                    <span className={`font-mono text-xs ${confirmation.confidence >= 0.85 ? "text-emerald-400" : confirmation.confidence >= 0.7 ? "text-amber-400" : "text-red-400"}`}>
+                      {(confirmation.confidence * 100).toFixed(0)}% (final)
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           )}

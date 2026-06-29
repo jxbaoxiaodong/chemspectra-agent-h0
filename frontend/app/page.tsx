@@ -29,30 +29,57 @@ const TOOL_LABELS: Record<string, string> = {
   search_public_results: "Public Result Search",
 };
 
-function formatEvent(ev: AgentEvent): string | null {
-  if (ev.type === "phase") return `${ev.data.label || ev.data.phase}`;
-  if (ev.type === "tool_call") {
-    const name = TOOL_LABELS[ev.data.tool as string] || ev.data.tool;
-    return `Tool call: ${name}`;
+interface ProcessedLine {
+  text: string;
+  kind: "phase" | "tool" | "result" | "verify" | "thinking";
+}
+
+function processEvents(events: AgentEvent[]): ProcessedLine[] {
+  const lines: ProcessedLine[] = [];
+  let thinkingBuf = "";
+
+  for (const ev of events) {
+    if (ev.type === "thinking" || ev.type === "synthesis_chunk") {
+      thinkingBuf += (ev.data.text as string) || "";
+      const sentences = thinkingBuf.split(/(?<=[.!?。])\s+/);
+      if (sentences.length > 1) {
+        for (let i = 0; i < sentences.length - 1; i++) {
+          const s = sentences[i].trim();
+          if (s.length > 10) lines.push({ text: s, kind: "thinking" });
+        }
+        thinkingBuf = sentences[sentences.length - 1];
+      }
+    } else {
+      if (thinkingBuf.trim().length > 10) {
+        lines.push({ text: thinkingBuf.trim(), kind: "thinking" });
+        thinkingBuf = "";
+      }
+      if (ev.type === "phase") {
+        lines.push({ text: `${ev.data.label || ev.data.phase}`, kind: "phase" });
+      } else if (ev.type === "tool_call") {
+        const name = TOOL_LABELS[ev.data.tool as string] || ev.data.tool;
+        lines.push({ text: `Calling ${name}...`, kind: "tool" });
+      } else if (ev.type === "tool_result") {
+        const name = TOOL_LABELS[ev.data.tool as string] || ev.data.tool;
+        const matches = ev.data.n_matches as number;
+        const top = ev.data.top_match as string;
+        let detail = `${name} → ${matches} matches`;
+        if (top) detail += ` (top: ${top})`;
+        lines.push({ text: detail, kind: "result" });
+      } else if (ev.type === "verification_triggered") {
+        const c = ev.data.confidence as number;
+        lines.push({ text: `Low confidence (${(c * 100).toFixed(0)}%) — triggering self-verification round...`, kind: "verify" });
+      } else if (ev.type === "verification_done") {
+        const before = ev.data.confidence_before as number;
+        const after = ev.data.confidence_after as number;
+        lines.push({ text: `Verification: confidence ${(before * 100).toFixed(0)}% → ${(after * 100).toFixed(0)}%`, kind: "verify" });
+      }
+    }
   }
-  if (ev.type === "tool_result") {
-    const name = TOOL_LABELS[ev.data.tool as string] || ev.data.tool;
-    const conf = ev.data.confidence;
-    return conf != null
-      ? `${name} → confidence ${(conf as number).toFixed(4)}`
-      : `${name} → done`;
+  if (thinkingBuf.trim().length > 10) {
+    lines.push({ text: thinkingBuf.trim(), kind: "thinking" });
   }
-  if (ev.type === "verification_triggered") {
-    const c = ev.data.confidence as number;
-    return `Low confidence (${(c * 100).toFixed(0)}%) — triggering self-verification round...`;
-  }
-  if (ev.type === "verification_done") {
-    const before = ev.data.confidence_before as number;
-    const after = ev.data.confidence_after as number;
-    return `Verification complete: ${(before * 100).toFixed(0)}% → ${(after * 100).toFixed(0)}%`;
-  }
-  if (ev.type === "synthesis_chunk" || ev.type === "thinking") return null;
-  return null;
+  return lines;
 }
 
 export default function Home() {
@@ -67,14 +94,14 @@ export default function Home() {
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [confirmed, setConfirmed] = useState(false);
 
-  const [agentEvents, setAgentEvents] = useState<string[]>([]);
+  const [agentLines, setAgentLines] = useState<ProcessedLine[]>([]);
   const [historyRefresh, setHistoryRefresh] = useState(0);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const eventsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     eventsEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [agentEvents]);
+  }, [agentLines]);
 
   useEffect(() => {
     return () => {
@@ -92,7 +119,7 @@ export default function Home() {
     setError(null);
     setResult(null);
     setConfirmed(false);
-    setAgentEvents([]);
+    setAgentLines([]);
 
     try {
       const { session_id } = await analyzeStart({
@@ -102,18 +129,16 @@ export default function Home() {
         analysis_type: analysisType,
       });
 
-      setAgentEvents(["Analysis started. Agent is reasoning..."]);
+      setAgentLines([{ text: "Analysis started. Agent is reasoning...", kind: "phase" }]);
 
       pollingRef.current = setInterval(async () => {
         try {
           const status = await getStatus(session_id);
 
           if (status.events && status.events.length > 0) {
-            const newLines = status.events
-              .map(formatEvent)
-              .filter((s): s is string => s !== null);
+            const newLines = processEvents(status.events);
             if (newLines.length > 0) {
-              setAgentEvents((prev) => [...prev, ...newLines]);
+              setAgentLines((prev) => [...prev, ...newLines]);
             }
           }
 
@@ -292,7 +317,7 @@ export default function Home() {
           )}
 
           {/* Agent reasoning live log */}
-          {loading && agentEvents.length > 0 && (
+          {loading && agentLines.length > 0 && (
             <div className="rounded-2xl border border-cyan-500/20 bg-slate-900/50 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <svg className="h-4 w-4 animate-spin text-cyan-400 shrink-0" viewBox="0 0 24 24" fill="none">
@@ -301,20 +326,22 @@ export default function Home() {
                 </svg>
                 <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">Agent Reasoning Log</span>
               </div>
-              <div className="max-h-48 overflow-y-auto space-y-1 font-mono text-xs">
-                {agentEvents.map((line, i) => (
-                  <p key={i} className={
-                    line.includes("verification") || line.includes("Low confidence")
-                      ? "text-amber-400"
-                      : line.includes("Tool call")
-                        ? "text-indigo-300"
-                        : line.includes("→")
-                          ? "text-emerald-400"
-                          : "text-slate-400"
-                  }>
-                    ▶ {line}
-                  </p>
-                ))}
+              <div className="max-h-64 overflow-y-auto space-y-1 text-xs">
+                {agentLines.map((line, i) => {
+                  const colors: Record<string, string> = {
+                    phase: "text-cyan-300 font-semibold font-mono",
+                    tool: "text-indigo-300 font-mono",
+                    result: "text-emerald-400 font-mono",
+                    verify: "text-amber-400 font-mono",
+                    thinking: "text-slate-400",
+                  };
+                  const prefix = line.kind === "thinking" ? "  " : "▶ ";
+                  return (
+                    <p key={i} className={colors[line.kind] || "text-slate-400"}>
+                      {prefix}{line.text}
+                    </p>
+                  );
+                })}
                 <div ref={eventsEndRef} />
               </div>
             </div>
