@@ -5,11 +5,11 @@ interface ToolBadgesProps {
 }
 
 const TOOL_LABELS: Record<string, string> = {
-  identify_material: "材料鉴定",
-  explain_peaks: "峰位解释",
-  assign_functional_groups: "官能团分析",
-  match_library_topk: "谱库匹配",
-  search_public_results: "公开结果搜索",
+  identify_material: "Material ID",
+  explain_peaks: "Peak Explanation",
+  assign_functional_groups: "Functional Groups",
+  match_library_topk: "Library Match",
+  search_public_results: "Public Search",
 };
 
 const TOOL_COLORS: Record<string, string> = {
@@ -26,7 +26,7 @@ export default function ToolBadges({ tools }: ToolBadgesProps) {
   return (
     <div className="space-y-2">
       <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-        Agent 使用的工具
+        Tools Used by Agent
       </h4>
       <div className="flex flex-wrap gap-2">
         {tools.map((tool, i) => (

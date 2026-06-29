@@ -38,7 +38,7 @@ export default function FollowUpChat({ sessionId, disabled }: FollowUpChatProps)
       const resp: FollowUpResponse = await followUp({ session_id: sessionId, question });
       setMessages((prev) => [...prev, { role: "agent", text: resp.answer }]);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "发送失败";
+      const msg = err instanceof Error ? err.message : "Failed to send.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -54,9 +54,8 @@ export default function FollowUpChat({ sessionId, disabled }: FollowUpChatProps)
 
   return (
     <div className="space-y-3">
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">追问分析</h4>
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Follow-up Questions</h4>
 
-      {/* 消息列表 */}
       {messages.length > 0 && (
         <div className="max-h-64 space-y-3 overflow-y-auto rounded-lg border border-slate-700 bg-slate-900/50 p-4">
           {messages.map((msg, i) => (
@@ -87,14 +86,12 @@ export default function FollowUpChat({ sessionId, disabled }: FollowUpChatProps)
         </div>
       )}
 
-      {/* 错误提示 */}
       {error && (
         <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-sm text-red-400">
           {error}
         </div>
       )}
 
-      {/* 输入框 */}
       <div className="flex gap-2">
         <input
           type="text"
@@ -102,7 +99,7 @@ export default function FollowUpChat({ sessionId, disabled }: FollowUpChatProps)
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={disabled || loading}
-          placeholder="输入追问，如「这个置信度为什么很低？」"
+          placeholder='Ask a follow-up, e.g. "Why is confidence low?"'
           className="flex-1 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 disabled:opacity-50"
         />
         <button
@@ -110,7 +107,7 @@ export default function FollowUpChat({ sessionId, disabled }: FollowUpChatProps)
           disabled={disabled || loading || !input.trim()}
           className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-500 disabled:opacity-40 transition-colors"
         >
-          {loading ? "发送中..." : "发送"}
+          {loading ? "Sending..." : "Send"}
         </button>
       </div>
     </div>

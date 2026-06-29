@@ -12,11 +12,11 @@ import type { AnalyzeResponse } from "@/src/lib/types";
 type Tab = "upload" | "peaks";
 
 const ANALYSIS_TYPES = [
-  { value: "identify", label: "鉴定材料", desc: "识别未知样品是什么物质" },
-  { value: "explain", label: "解释峰位", desc: "解析每个吸收峰的化学归属" },
-  { value: "functional_groups", label: "官能团分析", desc: "分配红外特征官能团" },
-  { value: "deformulate", label: "反向解析（完整分析）", desc: "多工具综合深度分析" },
-  { value: "screening", label: "快速筛查", desc: "谱库快速匹配 + 数据库检索" },
+  { value: "identify", label: "Identify Material", desc: "Identify unknown sample composition" },
+  { value: "explain", label: "Explain Peaks", desc: "Assign chemical origin to each absorption peak" },
+  { value: "functional_groups", label: "Functional Groups", desc: "Assign characteristic IR functional groups" },
+  { value: "deformulate", label: "Full Analysis", desc: "Multi-tool deep analysis" },
+  { value: "screening", label: "Quick Screen", desc: "Fast library match + database search" },
 ];
 
 export default function Home() {
@@ -35,7 +35,7 @@ export default function Home() {
 
   const handleAnalyze = useCallback(async () => {
     if (!file && !peaks.trim()) {
-      setError("请上传光谱文件或输入峰位数据");
+      setError("Please upload a spectrum file or enter peak positions.");
       return;
     }
 
@@ -54,7 +54,7 @@ export default function Home() {
       setResult(resp);
       setHistoryRefresh((n) => n + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "分析失败");
+      setError(err instanceof Error ? err.message : "Analysis failed.");
     } finally {
       setLoading(false);
     }
@@ -70,13 +70,13 @@ export default function Home() {
       setConfirmed(true);
       setHistoryRefresh((n) => n + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "确认失败");
+      setError(err instanceof Error ? err.message : "Confirmation failed.");
     }
   }, [result]);
 
   return (
     <div className="flex min-h-screen">
-      {/* 左侧边栏 — 分析历史 */}
+      {/* Left sidebar — analysis history */}
       <aside className="w-72 shrink-0 border-r border-slate-800 bg-slate-900/50 p-4 overflow-y-auto">
         <HistorySidebar
           onSelect={() => {}}
@@ -93,7 +93,7 @@ export default function Home() {
               ChemSpectra Agent
             </h1>
             <p className="text-slate-400">
-              AI 驱动的 FTIR 红外光谱自动分析 — 上传光谱，获取材料鉴定、官能团分析与结构化报告
+              AI-powered FTIR spectral analysis — upload a spectrum or enter peaks, get material ID, functional groups, and a structured report.
             </p>
           </header>
 
@@ -109,7 +109,7 @@ export default function Home() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                文件上传
+                File Upload
               </button>
               <button
                 onClick={() => setActiveTab("peaks")}
@@ -119,7 +119,7 @@ export default function Home() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                手动输入峰位
+                Enter Peaks
               </button>
             </div>
 
@@ -131,12 +131,12 @@ export default function Home() {
             {/* 峰位输入 */}
             {activeTab === "peaks" && (
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">峰位 (cm⁻¹)</label>
+                <label className="text-sm font-medium text-slate-300">Peak Positions (cm⁻¹)</label>
                 <textarea
                   value={peaks}
                   onChange={(e) => setPeaks(e.target.value)}
                   disabled={loading}
-                  placeholder="输入峰位值，以逗号分隔，例如：2920, 2850, 1460, 720"
+                  placeholder="Enter comma-separated peak positions, e.g.: 2920, 2850, 1460, 720"
                   rows={3}
                   className="w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 disabled:opacity-50 resize-none"
                 />
@@ -145,20 +145,20 @@ export default function Home() {
 
             {/* 样品描述 */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">样品描述（可选）</label>
+              <label className="text-sm font-medium text-slate-300">Sample Description (optional)</label>
               <input
                 type="text"
                 value={context}
                 onChange={(e) => setContext(e.target.value)}
                 disabled={loading}
-                placeholder="例如：疑似聚乙烯薄膜、未知白色粉末..."
+                placeholder="e.g.: polymer film sample from QC lab, unknown white powder..."
                 className="w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 disabled:opacity-50"
               />
             </div>
 
             {/* 分析类型 */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">分析类型</label>
+              <label className="text-sm font-medium text-slate-300">Analysis Type</label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {ANALYSIS_TYPES.map((t) => (
                   <button
@@ -191,10 +191,10 @@ export default function Home() {
                     <path className="opacity-75" fill="currentColor"
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  AI 正在分析光谱数据...
+                  AI is analyzing spectrum data...
                 </span>
               ) : (
-                "开始分析"
+                "Run Analysis"
               )}
             </button>
           </section>
@@ -240,7 +240,7 @@ export default function Home() {
                 <div className="flex items-center gap-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
                   <div className="flex-1">
                     <p className="text-sm text-amber-200">
-                      ⚠️ 以上为 AI 自动分析结果，请人工审核后确认。
+                      ⚠️ AI analysis complete. Please review results before confirming.
                     </p>
                   </div>
                   {!confirmed ? (
@@ -248,7 +248,7 @@ export default function Home() {
                       onClick={handleConfirm}
                       className="rounded-lg bg-amber-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-amber-500 transition-colors shrink-0"
                     >
-                      确认分析结果
+                      Confirm Analysis
                     </button>
                   ) : (
                     <ReportDownload sessionId={result.session_id} />
@@ -263,7 +263,7 @@ export default function Home() {
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span className="text-sm font-medium">分析已确认，报告已生成</span>
+                    <span className="text-sm font-medium">Analysis confirmed. Report generated.</span>
                   </div>
                 </div>
               )}

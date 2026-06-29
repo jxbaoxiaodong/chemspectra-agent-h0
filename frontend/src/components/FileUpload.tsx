@@ -64,7 +64,7 @@ export default function FileUpload({ onFileChange, disabled }: FileUploadProps) 
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-slate-300">光谱文件</label>
+      <label className="text-sm font-medium text-slate-300">Spectrum File</label>
       <div
         onDragEnter={handleDragIn}
         onDragLeave={handleDragOut}
@@ -92,7 +92,7 @@ export default function FileUpload({ onFileChange, disabled }: FileUploadProps) 
                 onClick={handleClear}
                 className="text-xs text-slate-400 hover:text-red-400 transition-colors"
               >
-                移除文件
+                Remove file
               </button>
             )}
           </div>
@@ -103,9 +103,9 @@ export default function FileUpload({ onFileChange, disabled }: FileUploadProps) 
                 d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
             <p className="text-sm text-slate-400">
-              拖拽文件到此处，或
+              Drag & drop a file here, or
               <label className="mx-1 cursor-pointer text-cyan-400 hover:text-cyan-300 underline underline-offset-2">
-                浏览选择
+                browse
                 <input
                   type="file"
                   accept={ACCEPTED_FORMATS}
@@ -116,7 +116,7 @@ export default function FileUpload({ onFileChange, disabled }: FileUploadProps) 
               </label>
             </p>
             <p className="text-xs text-slate-600">
-              支持 .spc / .csv / .jdx / .dx / .opus / .spa / .xlsx / .txt / .json 等 28+ 格式
+              Supports .spc / .csv / .jdx / .dx / .opus / .spa / .xlsx / .txt / .json and 20+ more formats
             </p>
           </div>
         )}

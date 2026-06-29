@@ -17,7 +17,7 @@ export default function ReportDownload({ sessionId, disabled }: ReportDownloadPr
       const markdown = await downloadReport(sessionId);
       downloadAsFile(markdown, `ftir-analysis-${sessionId.slice(0, 8)}.md`);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "下载失败";
+      const msg = err instanceof Error ? err.message : "Download failed.";
       alert(msg);
     } finally {
       setDownloading(false);
@@ -34,7 +34,7 @@ export default function ReportDownload({ sessionId, disabled }: ReportDownloadPr
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
           d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
-      {downloading ? "下载中..." : "下载报告 (Markdown)"}
+      {downloading ? "Downloading..." : "Download Report (Markdown)"}
     </button>
   );
 }

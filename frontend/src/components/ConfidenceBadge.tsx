@@ -27,10 +27,16 @@ export default function ConfidenceBadge({ confidence, size = "md" }: ConfidenceB
     lg: "text-base px-4 py-1.5",
   };
 
+  const labels = {
+    high: "High Confidence",
+    medium: "Medium Confidence",
+    low: "Low Confidence",
+  };
+
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border font-medium ${colors[level]} ${sizeClasses[size]}`}>
       <span className={`inline-block h-2 w-2 rounded-full ${dots[level]}`} />
-      {level === "high" ? "高置信度" : level === "medium" ? "中等置信度" : "低置信度"}
+      {labels[level]}
       <span className="opacity-70 ml-0.5">({pct}%)</span>
     </span>
   );

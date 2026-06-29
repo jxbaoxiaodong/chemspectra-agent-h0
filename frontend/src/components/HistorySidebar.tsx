@@ -21,7 +21,7 @@ export default function HistorySidebar({ onSelect, selectedId, refreshTrigger }:
       const resp = await getHistory();
       setSessions(resp.sessions);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "获取历史失败");
+      setError(err instanceof Error ? err.message : "Failed to load history.");
     } finally {
       setLoading(false);
     }
@@ -33,7 +33,7 @@ export default function HistorySidebar({ onSelect, selectedId, refreshTrigger }:
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
-    return d.toLocaleString("zh-CN", {
+    return d.toLocaleString("en-US", {
       month: "2-digit",
       day: "2-digit",
       hour: "2-digit",
@@ -41,16 +41,28 @@ export default function HistorySidebar({ onSelect, selectedId, refreshTrigger }:
     });
   };
 
+  const stepLabel: Record<string, string> = {
+    completed: "Completed",
+    verifying: "Verifying",
+    awaiting_confirmation: "Awaiting Review",
+  };
+
+  const stepColor: Record<string, string> = {
+    completed: "bg-emerald-500/15 text-emerald-400",
+    verifying: "bg-amber-500/15 text-amber-400",
+    awaiting_confirmation: "bg-sky-500/15 text-sky-400",
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">分析历史</h4>
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Analysis History</h4>
         <button
           onClick={fetchHistory}
           disabled={loading}
           className="text-xs text-cyan-400 hover:text-cyan-300 disabled:opacity-40 transition-colors"
         >
-          刷新
+          Refresh
         </button>
       </div>
 
@@ -72,7 +84,7 @@ export default function HistorySidebar({ onSelect, selectedId, refreshTrigger }:
       )}
 
       {!loading && sessions.length === 0 && (
-        <p className="py-4 text-center text-sm text-slate-600">暂无历史记录</p>
+        <p className="py-4 text-center text-sm text-slate-600">No history yet.</p>
       )}
 
       {sessions.map((s) => (
@@ -87,7 +99,7 @@ export default function HistorySidebar({ onSelect, selectedId, refreshTrigger }:
         >
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-white truncate max-w-[140px]">
-              {s.top_match || "未知"}
+              {s.top_match || "Unknown"}
             </span>
             {s.top_score > 0 && (
               <span className="text-xs font-mono text-cyan-400">{(s.top_score * 100).toFixed(0)}%</span>
@@ -100,14 +112,8 @@ export default function HistorySidebar({ onSelect, selectedId, refreshTrigger }:
             <span className="text-xs text-slate-600">{formatDate(s.created_at)}</span>
           </div>
           <div className="mt-1">
-            <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-              s.step === "completed" ? "bg-emerald-500/15 text-emerald-400" :
-              s.step === "verifying" ? "bg-amber-500/15 text-amber-400" :
-              "bg-slate-500/15 text-slate-400"
-            }`}>
-              {s.step === "completed" ? "已完成" :
-               s.step === "verifying" ? "验证中" :
-               s.step === "awaiting_confirmation" ? "待确认" : s.step}
+            <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${stepColor[s.step] || "bg-slate-500/15 text-slate-400"}`}>
+              {stepLabel[s.step] || s.step}
             </span>
           </div>
         </button>

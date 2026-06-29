@@ -21,7 +21,7 @@ export default function ResultsPanel({
 
   return (
     <div className="space-y-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
-      {/* 顶部匹配结果 */}
+      {/* Top match */}
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-xl font-bold text-white">{confirmation.top_match}</h3>
@@ -32,30 +32,30 @@ export default function ResultsPanel({
           )}
           {confirmation.similarity_score > 0 && (
             <p className="mt-0.5 text-sm text-slate-400">
-              相似度: <span className="text-white font-mono">{confirmation.similarity_score.toFixed(4)}</span>
+              Similarity: <span className="text-white font-mono">{confirmation.similarity_score.toFixed(4)}</span>
             </p>
           )}
         </div>
         <ConfidenceBadge confidence={confirmation.confidence} size="lg" />
       </div>
 
-      {/* 工具使用 */}
+      {/* Tools used */}
       <ToolBadges tools={toolsCalled} />
 
-      {/* Agent 综合分析 */}
+      {/* Agent synthesis */}
       {confirmation.summary && (
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">综合分析</h4>
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Analysis Summary</h4>
           <div className="prose prose-invert prose-sm max-w-none rounded-lg border border-slate-700 bg-slate-900/50 p-4 text-sm leading-relaxed text-slate-300 whitespace-pre-wrap">
             {confirmation.summary}
           </div>
         </div>
       )}
 
-      {/* 官能团列表 */}
+      {/* Functional groups */}
       {confirmation.functional_groups && confirmation.functional_groups.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">鉴定的官能团</h4>
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Identified Functional Groups</h4>
           <div className="flex flex-wrap gap-2">
             {confirmation.functional_groups.map((group, i) => (
               <span
@@ -69,10 +69,10 @@ export default function ResultsPanel({
         </div>
       )}
 
-      {/* 证据来源 */}
+      {/* Evidence sources */}
       {confirmation.evidence_sources && confirmation.evidence_sources.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">证据来源</h4>
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Evidence Sources</h4>
           <ul className="list-inside list-disc space-y-1 text-sm text-slate-400">
             {confirmation.evidence_sources.map((source, i) => (
               <li key={i}>{source}</li>
@@ -81,22 +81,22 @@ export default function ResultsPanel({
         </div>
       )}
 
-      {/* Agent 指标 */}
+      {/* Agent metrics */}
       {agentMetrics && (
         <div className="rounded-lg border border-slate-700 bg-slate-900/30 p-4">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Agent 指标</h4>
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Agent Metrics</h4>
           <div className="grid grid-cols-4 gap-3 text-center">
             <div>
               <div className="text-lg font-bold text-white">{agentMetrics.iterations}</div>
-              <div className="text-xs text-slate-500">ReAct 迭代</div>
+              <div className="text-xs text-slate-500">ReAct Rounds</div>
             </div>
             <div>
               <div className="text-lg font-bold text-white">{agentMetrics.verification_rounds}</div>
-              <div className="text-xs text-slate-500">验证轮次</div>
+              <div className="text-xs text-slate-500">Verifications</div>
             </div>
             <div>
               <div className="text-lg font-bold text-white">{agentMetrics.repairs}</div>
-              <div className="text-xs text-slate-500">修复次数</div>
+              <div className="text-xs text-slate-500">Self-Repairs</div>
             </div>
             <div>
               <div className="text-lg font-bold text-white font-mono">
@@ -104,12 +104,12 @@ export default function ResultsPanel({
                   ? (agentMetrics.confidence_trace[agentMetrics.confidence_trace.length - 1] * 100).toFixed(0)
                   : "—"}
               </div>
-              <div className="text-xs text-slate-500">最终置信度 %</div>
+              <div className="text-xs text-slate-500">Final Confidence %</div>
             </div>
           </div>
           {agentMetrics.confidence_trace && agentMetrics.confidence_trace.length > 1 && (
             <div className="mt-3">
-              <div className="text-xs text-slate-500 mb-1">置信度变化轨迹</div>
+              <div className="text-xs text-slate-500 mb-1">Confidence Trace</div>
               <div className="flex items-center gap-1">
                 {agentMetrics.confidence_trace.map((c, i) => (
                   <span key={i} className="inline-flex items-center gap-1 text-xs text-slate-400">
