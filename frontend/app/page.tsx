@@ -12,11 +12,8 @@ import type { AnalyzeResponse } from "@/src/lib/types";
 type Tab = "upload" | "peaks";
 
 const ANALYSIS_TYPES = [
-  { value: "identify", label: "Identify Material", desc: "Identify unknown sample composition" },
+  { value: "identify", label: "Identify Material", desc: "Identify what an unknown sample is" },
   { value: "explain", label: "Explain Peaks", desc: "Assign chemical origin to each absorption peak" },
-  { value: "functional_groups", label: "Functional Groups", desc: "Assign characteristic IR functional groups" },
-  { value: "deformulate", label: "Full Analysis", desc: "Multi-tool deep analysis" },
-  { value: "screening", label: "Quick Screen", desc: "Fast library match + database search" },
 ];
 
 export default function Home() {
